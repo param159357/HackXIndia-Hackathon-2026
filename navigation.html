@@ -1,0 +1,79 @@
+<nav class="bg-dark-navy border-b border-red-500/20 sticky top-0 z-50 backdrop-blur-sm bg-opacity-95">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <!-- Logo -->
+            <div class="flex items-center space-x-3">
+                <div
+                    class="w-10 h-10 bg-gradient-to-br from-emergency-red to-warning-orange rounded-lg flex items-center justify-center">
+                    <i class="fas fa-traffic-light text-white text-lg"></i>
+                </div>
+                <div>
+                    <div class="text-white font-bold text-lg leading-tight">Smart Traffic</div>
+                    <div class="text-xs text-gray-400 -mt-1">AI Priority Engine</div>
+                </div>
+            </div>
+
+            <!-- Desktop Navigation -->
+            <div class="hidden md:flex space-x-8 items-center">
+                <a href="#problem" class="text-gray-300 hover:text-white transition-colors font-medium">The Problem</a>
+                <a href="#solution" class="text-gray-300 hover:text-white transition-colors font-medium">The
+                    Solution</a>
+                <a href="#features" class="text-gray-300 hover:text-white transition-colors font-medium">Features</a>
+                <a href="#dashboard" class="text-gray-300 hover:text-white transition-colors font-medium">Dashboard</a>
+                <a href="#technology"
+                    class="text-gray-300 hover:text-white transition-colors font-medium">Technology</a>
+                <a href="/dashboard.html"
+                    class="bg-emergency-red hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center space-x-2">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Live Demo</span>
+                </a>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button class="md:hidden p-2 text-gray-300 hover:text-white" id="mobile-menu-btn" aria-label="Toggle menu">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div class="hidden md:hidden pb-4 border-t border-gray-700 mt-2" id="mobile-menu">
+            <div class="flex flex-col space-y-2 pt-4">
+                <a href="#problem" class="text-gray-300 hover:text-white py-2 transition-colors">The Problem</a>
+                <a href="#solution" class="text-gray-300 hover:text-white py-2 transition-colors">The Solution</a>
+                <a href="#features" class="text-gray-300 hover:text-white py-2 transition-colors">Features</a>
+                <a href="#dashboard" class="text-gray-300 hover:text-white py-2 transition-colors">Dashboard</a>
+                <a href="#technology" class="text-gray-300 hover:text-white py-2 transition-colors">Technology</a>
+                <a href="/dashboard.html"
+                    class="bg-emergency-red hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-center mt-2">
+                    <i class="fas fa-play-circle mr-2"></i>Live Demo
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<style>
+    .bg-dark-navy {
+        background-color: #0F172A;
+    }
+
+    .bg-slate-card {
+        background-color: #1E293B;
+    }
+
+    .text-emergency-red {
+        color: #DC2626;
+    }
+
+    .bg-emergency-red {
+        background-color: #DC2626;
+    }
+
+    .text-warning-orange {
+        color: #F59E0B;
+    }
+
+    .bg-warning-orange {
+        background-color: #F59E0B;
+    }
+</style>
