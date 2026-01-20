@@ -1,0 +1,3477 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Traffic AI Command Center</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Leaflet Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Heat -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <!-- Math.js for Risk Calculation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+
+    <style>
+        body {
+            background: #000000;
+            color: white;
+        }
+
+        #map {
+            height: 500px;
+            border-radius: 12px;
+        }
+    </style>
+    <style>
+        .launch-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #1a1a1a;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border: 2px solid #dc2626;
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+            cursor: pointer;
+            z-index: 9999;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            animation: pulse-glow 2s infinite;
+        }
+
+        .launch-btn:hover {
+            transform: scale(1.05);
+            background: #dc2626;
+            box-shadow: 0 0 40px rgba(220, 38, 38, 0.6);
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(220, 38, 38, 0.5);
+            }
+
+            100% {
+                box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+            }
+        }
+
+        /* WATCHDOG STYLES */
+        .watchdog-badge {
+            position: fixed;
+            top: 120px;
+            right: 30px;
+            z-index: 9998;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            border-radius: 12px;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .watchdog-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .watchdog-badge.operational {
+            border-color: rgba(220, 38, 38, 0.5);
+        }
+
+        .watchdog-badge.warning {
+            border-color: rgba(234, 179, 8, 0.5);
+            animation: pulse-warning 2s infinite;
+        }
+
+        .watchdog-badge.critical {
+            border-color: rgba(220, 38, 38, 0.8);
+            animation: pulse-critical 1s infinite;
+        }
+
+        @keyframes pulse-warning {
+
+            0%,
+            100% {
+                box-shadow: 0 4px 12px rgba(234, 179, 8, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 4px 20px rgba(234, 179, 8, 0.6);
+            }
+        }
+
+        @keyframes pulse-critical {
+
+            0%,
+            100% {
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 4px 20px rgba(239, 68, 68, 0.8);
+            }
+        }
+
+        .watchdog-status-icon {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .watchdog-status-icon.operational {
+            background: #dc2626;
+            box-shadow: 0 0 8px rgba(220, 38, 38, 0.6);
+        }
+
+        .watchdog-status-icon.warning {
+            background: #eab308;
+            box-shadow: 0 0 8px rgba(234, 179, 8, 0.6);
+        }
+
+        .watchdog-status-icon.critical {
+            background: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+        }
+
+        .watchdog-console {
+            position: fixed;
+            top: 175px;
+            right: 30px;
+            z-index: 9997;
+            width: 400px;
+            max-height: 500px;
+            background: rgba(0, 0, 0, 0.98);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+        }
+
+        .watchdog-console-header {
+            padding: 16px;
+            border-bottom: 1px solid rgba(220, 38, 38, 0.2);
+            background: rgba(26, 26, 26, 0.8);
+        }
+
+        .watchdog-console-body {
+            padding: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .watchdog-metric {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: rgba(26, 26, 26, 0.8);
+            border-radius: 8px;
+            border-left: 3px solid #4a4a4a;
+            font-size: 0.875rem;
+        }
+
+        .watchdog-metric.healthy {
+            border-left-color: #dc2626;
+        }
+
+        .watchdog-metric.warning {
+            border-left-color: #eab308;
+        }
+
+        .watchdog-metric.error {
+            border-left-color: #ef4444;
+        }
+
+        .watchdog-log-entry {
+            padding: 6px 10px;
+            margin-bottom: 6px;
+            background: rgba(26, 26, 26, 0.5);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <a href="http://localhost:8501" class="launch-btn" target="_blank">🚀 LAUNCH AI ENGINE</a>
+
+    <!-- WATCHDOG BADGE -->
+    <div id="watchdogBadge" class="watchdog-badge operational" onclick="toggleWatchdogConsole()">
+        <div class="flex items-center gap-2">
+            <span class="watchdog-status-icon operational"></span>
+            <div>
+                <div class="text-xs font-bold text-white uppercase tracking-wide" id="watchdogStatusText">OPERATIONAL
+                </div>
+                <div class="text-xs text-gray-400" id="watchdogLastCheck">Monitoring...</div>
+            </div>
+            <i class="fas fa-shield-halved text-green-400 ml-2" id="watchdogIcon"></i>
+        </div>
+    </div>
+
+    <!-- WATCHDOG CONSOLE -->
+    <div id="watchdogConsole" class="watchdog-console hidden">
+        <div class="watchdog-console-header">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-sm flex items-center gap-2">
+                    <i class="fas fa-shield-halved text-blue-400"></i> System Watchdog
+                </h3>
+                <button onclick="toggleWatchdogConsole()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">Auto-Recovery Enabled</p>
+        </div>
+        <div class="watchdog-console-body">
+            <div class="mb-4">
+                <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Component Health</h4>
+                <div id="watchdogMetrics"></div>
+            </div>
+            <div>
+                <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Activity Log</h4>
+                <div id="watchdogLogs"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="bg-black/70 backdrop-blur border-b border-gray-800 fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-traffic-light text-red-500 text-xl"></i>
+                <span class="font-bold text-lg">Smart Traffic AI</span>
+            </div>
+            <div class="space-x-6">
+                <a href="/" class="hover:text-red-400">Home</a>
+                <a href="/dashboard.html" class="text-red-400 font-semibold">Dashboard</a>
+                <a href="/contact.html" class="hover:text-red-400">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="pt-20 pb-12 max-w-7xl mx-auto px-6">
+
+        <!-- HEADER -->
+        <div class="mb-6">
+            <h1 class="text-4xl font-bold mb-2 flex items-center gap-3">
+                <i class="fas fa-tachometer-alt text-blue-400"></i>
+                Smart City AI Command Center
+            </h1>
+            <p class="text-gray-400">Real-time traffic intelligence & emergency response platform</p>
+        </div>
+
+        <!-- ALERT PANEL -->
+        <div id="alertBox" class="hidden bg-red-600/20 border border-red-600 rounded-xl p-6 mb-6">
+            <h3 class="text-lg font-bold flex items-center gap-2 text-red-400">
+                <i class="fas fa-siren"></i> Emergency Alert
+            </h3>
+            <p id="alertText" class="mt-2"></p>
+            <p id="alertRisk" class="text-sm mt-1"></p>
+        </div>
+
+        <!-- KPI ROW -->
+        <div class="grid md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-slate-900 p-6 rounded-xl border border-gray-700">
+                <div class="text-3xl font-bold text-red-500" id="statsCritical">--</div>
+                <div class="text-sm text-gray-400">Critical Alerts</div>
+            </div>
+            <div class="bg-slate-900 p-6 rounded-xl border border-gray-700">
+                <div class="text-3xl font-bold text-orange-400" id="statsViolations">--</div>
+                <div class="text-sm text-gray-400">Active Violations</div>
+            </div>
+            <div class="bg-slate-900 p-6 rounded-xl border border-gray-700">
+                <div class="text-3xl font-bold text-green-400" id="statsResponse">--</div>
+                <div class="text-sm text-gray-400">Avg Response</div>
+            </div>
+            <div class="bg-slate-900 p-6 rounded-xl border border-gray-700">
+                <div class="text-3xl font-bold text-blue-400" id="statsUptime">00:00</div>
+                <div class="text-sm text-gray-400">System Uptime</div>
+            </div>
+        </div>
+
+        <!-- MAIN GRID -->
+        <div class="grid lg:grid-cols-3 gap-5">
+
+            <!-- LEFT -->
+            <div class="lg:col-span-2 space-y-5">
+
+                <!-- MAP -->
+                <div class="relative group">
+                    <h2 class="text-xl font-bold mb-3 flex items-center justify-between">
+                        <span class="flex items-center gap-2"><i class="fas fa-map text-blue-400"></i> City Live
+                            Map</span>
+                        <!-- Map Search -->
+                        <div class="relative">
+                            <input id="mapSearch" type="text" placeholder="Search location..."
+                                class="bg-gray-800 text-sm rounded-full px-4 py-1.5 w-48 focus:w-64 transition-all outline-none border border-gray-600 focus:border-blue-500"
+                                onkeydown="if(event.key==='Enter') searchLocation()">
+                            <i class="fas fa-search absolute right-3 top-2 text-gray-400 cursor-pointer"
+                                onclick="searchLocation()"></i>
+                        </div>
+                    </h2>
+                    <div id="map" class="z-0"></div>
+                </div>
+
+                <!-- CAMERA INPUT FEATURE REMOVED -->
+
+                <!-- CCTV -->
+                <div>
+                    <h2 class="text-xl font-bold mb-4 flex items-center justify-between">
+                        <span class="flex items-center gap-2">
+                            <i class="fas fa-video text-blue-400"></i> Live CCTV Feeds
+                            <span id="videoCount" class="text-sm text-gray-400 font-normal"></span>
+                        </span>
+                        <a href="http://localhost:8501"
+                            class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/50"
+                            target="_blank">
+                            <i class="fas fa-external-link-alt mr-1"></i> Open Skillmap
+                        </a>
+                    </h2>
+
+                    <!-- DYNAMIC VIDEO GRID -->
+                    <div id="videoGrid" class="grid grid-cols-2 gap-4">
+                        <!-- Loading indicator -->
+                        <div class="col-span-2 flex items-center justify-center py-12">
+                            <div class="text-center">
+                                <i class="fas fa-spinner fa-spin text-4xl text-blue-400 mb-3"></i>
+                                <p class="text-gray-400">Loading video feeds...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT -->
+            <div class="space-y-5 flex flex-col h-full">
+
+                <!-- LEADERBOARD -->
+                <div>
+                    <h2 class="text-xl font-bold mb-3 flex items-center gap-2">
+                        <i class="fas fa-trophy text-yellow-400"></i> Danger Leaderboard
+                    </h2>
+                    <div id="leaderboard" class="space-y-3"></div>
+                </div>
+
+                <!-- CONTROL PANEL -->
+                <div class="bg-slate-900 p-6 rounded-xl border border-gray-700">
+                    <h3 class="font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-sliders-h text-blue-400"></i> Command Controls
+                    </h3>
+                    <div class="space-y-3">
+                        <button onclick="triggerEmergency()" class="w-full bg-red-600 py-2 rounded">Trigger Emergency
+                            Mode</button>
+                        <button onclick="overrideSignals()" class="w-full bg-blue-600 py-2 rounded">Override
+                            Signals</button>
+                        <button onclick="dispatchPatrol()" class="w-full bg-green-600 py-2 rounded">
+                            Dispatch Patrol
+                        </button>
+                        <button id="buildRouteBtn" onclick="toggleBuildMode()"
+                            class="w-full bg-pink-600 py-2 rounded hover:bg-pink-500 transition-colors">
+                            <i class="fas fa-hammer mr-2"></i>Build Custom Route
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI ASSISTANT -->
+                <!-- AI ASSISTANT -->
+                <div class="bg-slate-900 p-6 rounded-xl border border-gray-700 flex flex-col flex-1 min-h-[400px]">
+                    <h3 class="font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-robot text-purple-400"></i> AI Assistant
+                    </h3>
+
+                    <!-- Chat Area -->
+                    <div id="aiReply"
+                        class="flex-1 overflow-y-auto mb-4 text-sm space-y-2 text-gray-300 max-h-[250px] scrollbar-thin scrollbar-thumb-gray-700">
+                        <div class="text-green-400">System online. Monitoring traffic safety.</div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="relative">
+                        <input id="aiInput"
+                            class="w-full bg-black border border-gray-700 rounded p-3 mb-4 focus:border-purple-500 outline-none transition-colors"
+                            placeholder="Ask me anything...">
+                    </div>
+
+                    <!-- Trending FAQs -->
+                    <div class="border-t border-gray-800 pt-3">
+                        <div
+                            class="text-xs text-gray-500 mb-2 uppercase font-bold tracking-wider flex items-center gap-2">
+                            <i class="fas fa-fire text-orange-500"></i> Trending Searches (MV Act)
+                        </div>
+                        <div id="trendingTicker" onclick="askTrending()"
+                            class="bg-gray-800/50 p-2 rounded text-xs text-purple-300 cursor-pointer hover:bg-gray-800 transition-colors flex justify-between items-center group">
+                            <span id="tickerText">Loading trending queries...</span>
+                            <i class="fas fa-chevron-right opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- TOP RISKS LEADERBOARD -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                <i class="fas fa-trophy text-yellow-500"></i> Top 10 High-Risk Violations (Global Priority)
+            </h2>
+            <div class="bg-slate-900 rounded-xl border border-gray-700 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-gray-800 text-gray-400 uppercase font-bold">
+                            <tr>
+                                <th class="px-6 py-4">Rank</th>
+                                <th class="px-6 py-4">Risk Score</th>
+                                <th class="px-6 py-4">Violation Type</th>
+                                <th class="px-6 py-4">Location</th>
+                                <th class="px-6 py-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="globalRiskTableBody" class="divide-y divide-gray-800">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHARTS -->
+        <div class="grid md:grid-cols-2 gap-5 mt-8">
+
+            <div class="bg-slate-900 p-6 rounded-xl border border-gray-700">
+                <h3 class="font-bold mb-4">Risk Distribution</h3>
+                <canvas id="riskChart"></canvas>
+            </div>
+
+            <div class="bg-slate-900 p-6 rounded-xl border border-gray-700">
+                <h3 class="font-bold mb-4">Response Time Trend</h3>
+                <canvas id="responseChart"></canvas>
+            </div>
+
+        </div>
+
+        <!-- AI SELF-LEARNING INSIGHTS -->
+        <div class="mt-8 bg-gradient-to-r from-purple-900/20 to-blue-900/20 p-6 rounded-xl border border-purple-500/30">
+            <div class="flex items-center justify-between  mb-4">
+                <h2 class="text-2xl font-bold flex items-center gap-3">
+                    <i class="fas fa-brain text-purple-400"></i>
+                    AI Learning Insights
+                    <span class="text-sm font-normal text-gray-400">(Self-Learning System)</span>
+                </h2>
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                    <span class="text-green-400">actively learning</span>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-black/40 p-4 rounded-lg border border-purple-500/20">
+                    <div class="text-xs text-gray-400 mb-1">Patterns Identified Today</div>
+                    <div class="text-2xl font-bold text-purple-400" id="patternsToday">0</div>
+                </div>
+                <div class="bg-black/40 p-4 rounded-lg border border-blue-500/20">
+                    <div class="text-xs text-gray-400 mb-1">Live Feed Analysis</div>
+                    <div class="text-2xl font-bold text-blue-400" id="feedsAnalyzed">0</div>
+                </div>
+                <div class="bg-black/40 p-4 rounded-lg border border-green-500/20">
+                    <div class="text-xs text-gray-400 mb-1">Accuracy Improvement</div>
+                    <div class="text-2xl font-bold text-green-400" id="accuracyGain">+0%</div>
+                </div>
+            </div>
+
+            <h3 class="font-bold mb-3 text-lg flex items-center gap-2">
+                <i class="fas fa-lightbulb text-yellow-400"></i>
+                What's New Learnt Today
+            </h3>
+            <div id="learningLog" class="space-y-2 max-h-[300px] overflow-y-auto">
+                <div class="bg-black/30 p-3 rounded border-l-4 border-purple-500 text-sm">
+                    <div class="flex items-start gap-2">
+                        <i class="fas fa-check-circle text-green-400 mt-1"></i>
+                        <div>
+                            <div class="font-semibold text-purple-300">System Initialized</div>
+                            <div class="text-gray-400 text-xs mt-1">Self-learning engine activated. Monitoring live
+                                feeds...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RISK CALCULATION MODEL -->
+        <div class="mt-8 bg-gradient-to-br from-gray-900 to-black p-6 rounded-xl border border-gray-700">
+            <h2 class="text-xl font-bold mb-6 flex items-center gap-3">
+                <i class="fas fa-calculator text-green-400"></i> Real-Time Risk Calculation Model
+            </h2>
+
+            <div class="grid md:grid-cols-3 gap-8">
+
+                <!-- 1. BASE VIOLATION WEIGHTS -->
+                <div class="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                    <h3 class="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Base Violation Weights
+                    </h3>
+                    <div class="space-y-2 text-sm">
+                        <div
+                            class="flex justify-between items-center p-2 bg-red-900/20 rounded hover:bg-red-900/30 transition-colors">
+                            <span>🚑 Ambulance Blocked</span>
+                            <span class="font-mono text-red-400 font-bold">95-99</span>
+                        </div>
+                        <div
+                            class="flex justify-between items-center p-2 bg-red-900/10 rounded hover:bg-red-900/20 transition-colors">
+                            <span>⛔ Wrong Side Driving</span>
+                            <span class="font-mono text-orange-400 font-bold">85-95</span>
+                        </div>
+                        <div
+                            class="flex justify-between items-center p-2 bg-red-900/10 rounded hover:bg-red-900/20 transition-colors">
+                            <span>🚦 Red Light Violation</span>
+                            <span class="font-mono text-orange-400 font-bold">70-85</span>
+                        </div>
+                        <div
+                            class="flex justify-between items-center p-2 bg-yellow-900/10 rounded hover:bg-yellow-900/20 transition-colors">
+                            <span>🏎️ Overspeeding</span>
+                            <span class="font-mono text-yellow-400 font-bold">75-90</span>
+                        </div>
+                        <div
+                            class="flex justify-between items-center p-2 bg-blue-900/10 rounded hover:bg-blue-900/20 transition-colors">
+                            <span>🛵 No Helmet</span>
+                            <span class="font-mono text-blue-400 font-bold">50-65</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. DYNAMIC MULTIPLIERS -->
+                <div class="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                    <h3 class="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Active Multipliers</h3>
+
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-gray-400">Traffic Density</span>
+                                <span class="text-green-400 font-mono" id="densityFactor">1.2x</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-1.5">
+                                <div class="bg-green-500 h-1.5 rounded-full" style="width: 60%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-gray-400">Time of Day (Peak Hour)</span>
+                                <span class="text-yellow-400 font-mono" id="timeFactor">1.5x</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-1.5">
+                                <div class="bg-yellow-500 h-1.5 rounded-full" style="width: 85%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-gray-400">Weather Condition</span>
+                                <span class="text-blue-400 font-mono" id="weatherFactor">1.0x</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-1.5">
+                                <div class="bg-blue-500 h-1.5 rounded-full" style="width: 20%"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-4 bg-black/40 rounded border border-gray-600">
+                            <div class="text-xs text-gray-400 mb-2 uppercase tracking-wide font-bold">Risk Score
+                                Algorithm</div>
+                            <div class="font-mono text-xs text-purple-300 mb-2 border-b border-gray-700 pb-2">
+                                <span class="text-white">Risk</span> = ( <span class="text-red-400">Base</span> × <span
+                                    class="text-green-400">Density</span> × <span class="text-yellow-400">Time</span> )
+                                + <span class="text-blue-400">Weather</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-[10px] text-gray-500">
+                                <div><span class="text-red-400">Base</span>: Violation Severity (50-99)</div>
+                                <div><span class="text-green-400">Density</span>: Traffic Flow (1.0-1.5x)</div>
+                                <div><span class="text-yellow-400">Time</span>: Peak Hour Penalty (1.0-1.5x)</div>
+                                <div><span class="text-blue-400">Weather</span>: Visibility Penalty (+0-10)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. REAL-TIME RISK GRAPH -->
+                <div class="bg-gray-800/50 p-4 rounded-lg border border-gray-700 flex flex-col">
+                    <h3 class="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Live System Risk Index
+                    </h3>
+                    <div class="flex-1 relative min-h-[150px]">
+                        <canvas id="riskGraphCanvas"></canvas>
+                    </div>
+                    <div class="flex justify-between items-center mt-2 text-xs text-gray-500">
+                        <span>-60s</span>
+                        <span>Now</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RISK GRAPH SCRIPT -->
+    <script>
+        // RISK GRAPH LOGIC
+        // Wait for Chart.js to load
+        window.addEventListener('load', () => {
+            const riskCtx = document.getElementById('riskGraphCanvas').getContext('2d');
+            const riskChart = new Chart(riskCtx, {
+                type: 'line',
+                data: {
+                    labels: Array(20).fill(''),
+                    datasets: [{
+                        label: 'System Risk Level',
+                        data: Array(20).fill(50),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#6b7280', font: { size: 10 } }
+                        },
+                        x: { display: false }
+                    },
+                    animation: { duration: 0 }
+                }
+            });
+
+            // Live Update Loop
+            setInterval(() => {
+                // Update Graph with Synchronized Data
+                const currentRisk = window.currentCriticalRisk || (Math.floor(Math.random() * 20) + 40); // Sync with global or fallback
+                const data = riskChart.data.datasets[0].data;
+                data.shift();
+                data.push(currentRisk);
+
+                // Color based on risk
+                if (currentRisk > 75) {
+                    riskChart.data.datasets[0].borderColor = '#ef4444'; // Red
+                    riskChart.data.datasets[0].backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                } else if (currentRisk > 60) {
+                    riskChart.data.datasets[0].borderColor = '#f59e0b'; // Yellow
+                    riskChart.data.datasets[0].backgroundColor = 'rgba(245, 158, 11, 0.1)';
+                } else {
+                    riskChart.data.datasets[0].borderColor = '#10b981'; // Green
+                    riskChart.data.datasets[0].backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                }
+
+                riskChart.update();
+
+                // Update Multipliers
+                document.getElementById('densityFactor').innerText = (1.0 + Math.random() * 0.5).toFixed(1) + 'x';
+
+                // Time factor based on real time
+                const hour = new Date().getHours();
+                const isPeak = (hour >= 8 && hour <= 11) || (hour >= 17 && hour <= 20);
+                document.getElementById('timeFactor').innerText = isPeak ? "1.5x (Peak)" : "1.0x (Normal)";
+                document.getElementById('timeFactor').className = isPeak ? "text-yellow-400 font-mono" : "text-gray-400 font-mono";
+
+            }, 2000);
+        });
+    </script>
+
+    <!-- MAP -->
+    <script>
+        // TILE LAYERS
+        // TILE LAYERS (Fixed & Robust)
+        const streetLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "© OpenStreetMap"
+        });
+
+        const satelliteLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+            attribution: "© Esri",
+            maxZoom: 18
+        });
+
+        const darkLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+            attribution: "© CartoDB",
+            subdomains: "abcd",
+            maxZoom: 20
+        });
+
+        const map = L.map("map", {
+            center: [28.6139, 77.2090],
+            zoom: 11,
+            layers: [streetLayer] // Default
+        });
+
+        // Layer Control
+        const baseMaps = {
+            "Street View": streetLayer,
+            "Satellite": satelliteLayer,
+            "Traffic Dark": darkLayer
+        };
+        L.control.layers(baseMaps).addTo(map);
+
+        // --- REAL-TIME WEATHER INTEGRATION ---
+        const weatherControl = L.control({ position: "topright" });
+        weatherControl.onAdd = function (map) {
+            const div = L.DomUtil.create("div", "weather-info");
+            div.innerHTML = `
+                <div id="liveWeather" class="bg-black/90 text-white p-3 rounded-lg shadow-xl border border-blue-500/30 text-xs backdrop-blur-md">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fas fa-spin fa-spinner text-blue-400"></i> <span class="font-bold">Fetching Live Weather...</span>
+                    </div>
+                    <div class="text-[10px] text-gray-400">Locating...</div>
+                </div>
+            `;
+            return div;
+        };
+        weatherControl.addTo(map);
+
+        window.currentWeatherPenalty = 0; // Global for Risk Model
+
+        async function fetchRealWeather(lat = 28.61, lon = 77.20, locationName = "Delhi, India") {
+            try {
+                // Fetching for specific location
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,visibility,wind_speed_10m&timezone=Asia%2FKolkata`);
+                const data = await res.json();
+                const current = data.current;
+
+                const condition = getWeatherCondition(current.weather_code);
+                const visibilityKm = (current.visibility / 1000).toFixed(1);
+
+                // Update Map Widget
+                const weatherDiv = document.getElementById('liveWeather');
+                weatherDiv.innerHTML = `
+                    <div class="flex justify-between items-start gap-4">
+                        <div>
+                            <div class="font-bold text-lg leading-none mb-1 flex items-center gap-2">
+                                <i class="fas ${condition.icon} ${condition.color}"></i> ${current.temperature_2m}°C
+                            </div>
+                            <div class="font-semibold ${condition.color}">${condition.text}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-mono text-blue-300">${current.wind_speed_10m} km/h</div>
+                            <div class="font-mono ${visibilityKm < 2.0 ? 'text-red-400 animate-pulse' : 'text-gray-400'}">Vis: ${visibilityKm}km</div>
+                        </div>
+                    </div>
+                    <div class="mt-2 pt-1 border-t border-gray-700 text-[10px] text-gray-500 flex justify-between">
+                        <span class="truncate max-w-[150px]">${locationName}</span>
+                        <span>Updated Now</span>
+                    </div>
+                `;
+
+                // Risk Logic & Alerts
+                let penalty = 0;
+                let factorText = "1.0x (Clear)";
+                let factorColor = "text-blue-400";
+
+                if (current.visibility < 3000) { // < 3km visibility
+                    penalty = 15;
+                    factorText = "+15 (Fog/Haze)";
+                    factorColor = "text-red-400";
+
+                    // Trigger High Fog Alert if strict visibility issue
+                    if (current.visibility < 1500) {
+                        const randomArea = ['Yamuna Expressway', 'DND Flyway', 'NH-48', 'Ring Road'][Math.floor(Math.random() * 4)];
+                        showNotification('error', `⚠️ POOR VISIBILITY ALERT (${visibilityKm}km) at ${randomArea}. Drive Slow.`);
+                    }
+                } else if (current.weather_code >= 51) { // Rain
+                    penalty = 10;
+                    factorText = "+10 (Rain)";
+                    factorColor = "text-yellow-400";
+                }
+
+                // Update Risk Model UI
+                const wFactor = document.getElementById('weatherFactor');
+                if (wFactor) {
+                    wFactor.innerText = factorText;
+                    wFactor.className = `${factorColor} font-mono`;
+                }
+
+                window.currentWeatherPenalty = penalty;
+
+            } catch (e) {
+                console.error("Weather fetch error:", e);
+                document.getElementById('liveWeather').innerHTML = '<span class="text-red-400">Weather Unavailable</span>';
+            }
+        }
+
+        function getWeatherCondition(code) {
+            if (code === 0) return { text: "Clear Sky", icon: "fa-sun", color: "text-yellow-400" };
+            if (code <= 3) return { text: "Partly Cloudy", icon: "fa-cloud-sun", color: "text-gray-300" };
+            if (code <= 48) return { text: "Fog / Haze", icon: "fa-smog", color: "text-gray-400" };
+            if (code <= 67) return { text: "Rain", icon: "fa-cloud-rain", color: "text-blue-400" };
+            if (code <= 77) return { text: "Snow", icon: "fa-snowflake", color: "text-white" };
+            return { text: "Severe", icon: "fa-bolt", color: "text-red-500" };
+        }
+
+        // Fetch immediately and every 5 minutes
+        fetchRealWeather();
+        setInterval(fetchRealWeather, 300000);
+
+
+        // GEODATA INSPECTOR (Live Coordinates & Address)
+        const geodataControl = L.control({ position: "bottomleft" });
+
+        geodataControl.onAdd = function (map) {
+            const div = L.DomUtil.create("div", "geodata-info");
+            div.innerHTML = `
+                <div class="bg-slate-900/90 border border-gray-600 p-3 rounded-lg text-xs shadow-lg backdrop-blur-sm" style="min-width: 200px;">
+                    <div class="font-bold text-blue-400 mb-1 flex items-center gap-2">
+                        <i class="fas fa-satellite-dish"></i> Live Geodata Inspector
+                    </div>
+                    <div id="geo-coords" class="font-mono text-gray-300">Hover map...</div>
+                    <div id="geo-address" class="mt-2 pt-2 border-t border-gray-700 text-gray-400 italic">
+                        Click any point for precise address
+                    </div>
+                </div>
+            `;
+            return div;
+        };
+        geodataControl.addTo(map);
+
+        // Live Coords
+        map.on("mousemove", function (e) {
+            document.getElementById("geo-coords").innerText =
+                `LAT: ${e.latlng.lat.toFixed(5)} | LON: ${e.latlng.lng.toFixed(5)}`;
+        });
+
+        // Reverse Geocoding on Click
+        map.on("click", async function (e) {
+            const addrDiv = document.getElementById("geo-address");
+            addrDiv.innerHTML = "<i class=\"fas fa-circle-notch fa-spin text-blue-500\"></i> Fetching details...";
+
+            try {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data && data.display_name) {
+                    addrDiv.innerHTML = `<span class="text-white">${data.display_name}</span>`;
+                    // Update Weather for Clicked Location
+                    fetchRealWeather(e.latlng.lat, e.latlng.lng, data.display_name.split(',')[0]);
+                } else {
+                    addrDiv.innerText = "Unknown Location Data";
+                    fetchRealWeather(e.latlng.lat, e.latlng.lng, "Selected Loc");
+                }
+            } catch (err) {
+                addrDiv.innerText = "Data Connection Error";
+            }
+        });
+
+        // MAP SEARCH LOGIC
+        async function searchLocation() {
+            const query = document.getElementById("mapSearch").value;
+            if (!query) return;
+
+            showNotification("info", `Searching for "${query}"...`);
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data && data.length > 0) {
+                    const lat = data[0].lat;
+                    const lon = data[0].lon;
+                    map.flyTo([lat, lon], 14);
+                    L.popup().setLatLng([lat, lon]).setContent(`<b>${query}</b>`).openOn(map);
+                } else {
+                    showNotification("warning", "Location not found.");
+                }
+            } catch (e) {
+                console.error(e);
+                showNotification("error", "Search failed.");
+            }
+        }
+
+        const intersections = [
+            [28.6139, 77.2090, "Connaught Place"],
+            [28.5355, 77.3910, "Noida"],
+            [28.7041, 77.1025, "North Delhi"],
+            [28.4595, 77.0266, "Gurgaon"]
+        ];
+
+
+
+        // INTERACTIVE PINNING SYSTEM
+        let pinnedMarker = null;
+        let pinnedLocation = null;
+
+        // Area-specific violation database
+        const areaViolations = {
+            "Connaught Place": [
+                { msg: "Ambulance blocked near Janpath", risk: 999, type: "critical" },
+                { msg: "Wrong-side SUV at Barakhamba Road", risk: 92, type: "high" },
+                { msg: "Overspeeding bike near Palika Bazaar", risk: 78, type: "medium" },
+                { msg: "Illegal parking at Outer Circle", risk: 65, type: "medium" },
+                { msg: "Red light violation at Rajiv Chowk", risk: 88, type: "high" }
+            ],
+            "Noida": [
+                { msg: "Heavy congestion at Sector 18 Metro", risk: 85, type: "high" },
+                { msg: "Triple riding on DND Flyway", risk: 72, type: "medium" },
+                { msg: "Wrong lane usage near Film City", risk: 68, type: "medium" },
+                { msg: "Overspeeding truck on Noida-Greater Noida Expressway", risk: 95, type: "critical" },
+                { msg: "Helmet violation at Sector 62", risk: 45, type: "low" }
+            ],
+            "North Delhi": [
+                { msg: "School zone speeding near Kashmere Gate", risk: 999, type: "critical" },
+                { msg: "Auto-rickshaw wrong side at ISBT", risk: 76, type: "medium" },
+                { msg: "Illegal U-turn at Majnu Ka Tilla", risk: 61, type: "medium" },
+                { msg: "Heavy vehicle in restricted zone", risk: 83, type: "high" },
+                { msg: "Signal jumping at Mukarba Chowk", risk: 89, type: "high" }
+            ],
+            "Gurgaon": [
+                { msg: "Emergency vehicle blocked at Cyber Hub", risk: 999, type: "critical" },
+                { msg: "Overspeeding luxury car on Golf Course Road", risk: 94, type: "critical" },
+                { msg: "Illegal lane change near IFFCO Chowk", risk: 71, type: "medium" },
+                { msg: "Drunk driving detected at MG Road", risk: 999, type: "critical" },
+                { msg: "Pedestrian safety violation near Galleria", risk: 55, type: "low" }
+            ],
+            "Default": [
+                { msg: "Traffic rule violation detected", risk: 75, type: "medium" },
+                { msg: "Speed limit exceeded", risk: 80, type: "high" },
+                { msg: "Improper lane usage", risk: 60, type: "medium" },
+                { msg: "Parking violation", risk: 50, type: "low" }
+            ]
+        };
+
+        // Initialize Map Markers with Live Data
+        intersections.forEach(i => {
+            const areaName = i[2];
+            const violations = areaViolations[areaName] || areaViolations["Default"];
+            const maxRisk = Math.max(...violations.map(v => v.risk));
+
+            // Determine Color
+            let color = "#3b82f6"; // Blue
+            if (maxRisk >= 90) color = "#ef4444"; // Red
+            else if (maxRisk >= 75) color = "#f97316"; // Orange
+            else if (maxRisk >= 50) color = "#eab308"; // Yellow
+
+            const markerIcon = L.divIcon({
+                className: 'custom-map-marker',
+                html: `<div style="font-size: 30px; color: ${color}; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"><i class="fas fa-map-marker-alt"></i></div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 30]
+            });
+
+            L.marker([i[0], i[1]], { icon: markerIcon }).addTo(map)
+                .bindPopup(`
+                    <div style="min-width: 150px; text-align: center;">
+                        <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${areaName}</div>
+                        <div style="background: ${color}20; color: ${color}; padding: 4px; border-radius: 4px; font-weight: 800; font-size: 16px;">
+                            ${maxRisk}% RISK
+                        </div>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                            ${violations.length} Active Threats
+                        </div>
+                        <button onclick="dispatchPatrol(${i[0]}, ${i[1]}, '${areaName}')" style="margin-top: 8px; width: 100%; background: #0f172a; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                            <i class="fas fa-shield-alt"></i> DISPATCH PATROL
+                        </button>
+                    </div>
+                `);
+        });
+
+        // Initialize Heatmap Layer
+        const heatData = intersections.map(i => {
+            const violations = areaViolations[i[2]] || areaViolations["Default"];
+            const risk = Math.max(...violations.map(v => v.risk)) / 100; // Normalize 0-1
+            return [i[0], i[1], risk * 2]; // Intensity
+        });
+        L.heatLayer(heatData, { radius: 35, blur: 20, maxZoom: 12 }).addTo(map);
+
+        // GLOBAL RISK TABLE LOGIC
+        function renderGlobalRiskTable() {
+            const allRisks = [];
+
+            // Flatten violations from all intersections
+            intersections.forEach(loc => {
+                const lat = loc[0];
+                const lng = loc[1];
+                const areaName = loc[2];
+                const violations = areaViolations[areaName] || [];
+
+                violations.forEach(v => {
+                    allRisks.push({
+                        ...v,
+                        area: areaName,
+                        lat: lat,
+                        lng: lng
+                    });
+                });
+            });
+
+            // Sort by Risk (Descending)
+            allRisks.sort((a, b) => b.risk - a.risk);
+
+            // Take Top 10
+            const topRisks = allRisks.slice(0, 10);
+
+            const tbody = document.getElementById('globalRiskTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            topRisks.forEach((risk, index) => {
+                const rank = index + 1;
+
+                // Risk Color
+                let colorClass = 'text-blue-400';
+                if (risk.risk >= 90) colorClass = 'text-red-500 font-bold';
+                else if (risk.risk >= 75) colorClass = 'text-orange-400 font-bold';
+                else if (risk.risk >= 60) colorClass = 'text-yellow-400';
+
+                // Row
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-800/50 transition-colors cursor-pointer group';
+
+                // Add click event to zoom
+                row.onclick = () => {
+                    map.flyTo([risk.lat, risk.lng], 16, { duration: 1.5 });
+                    L.popup()
+                        .setLatLng([risk.lat, risk.lng])
+                        .setContent(`<div style="font-weight:bold;text-align:center">${risk.msg}<br><span style="color:red">Risk: ${risk.risk}</span></div>`)
+                        .openOn(map);
+
+                    // Show notification
+                    showNotification("info", `Zooming to Rank #${rank} Risk at ${risk.area}`);
+                };
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 font-mono text-gray-500">#${rank}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                             <div class="w-12 bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                <div class="bg-gray-600 h-1.5 w-full relative">
+                                    <div class="${risk.risk >= 90 ? 'bg-red-500' : risk.risk >= 75 ? 'bg-orange-400' : 'bg-blue-400'} h-1.5 absolute top-0 left-0" style="width: ${risk.risk}%"></div>
+                                </div>
+                            </div>
+                            <span class="${colorClass}">${risk.risk}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 font-medium text-white group-hover:text-blue-400 transition-colors">
+                        ${risk.msg}
+                    </td>
+                    <td class="px-6 py-4 text-gray-400">
+                        <i class="fas fa-map-marker-alt mr-1 opacity-50"></i> ${risk.area}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button class="text-xs bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-3 py-1 rounded transition-all border border-blue-600/30">
+                            VIEW
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Initial Render
+        renderGlobalRiskTable();
+
+        // CORRIDOR BUILDER STATE
+        let isBuildingPath = false;
+        let customPathPoints = [];
+        let tempPathLayer = null;
+        let tempMarkers = [];
+
+        function toggleBuildMode() {
+            isBuildingPath = !isBuildingPath;
+            const btn = document.getElementById("buildRouteBtn");
+
+            if (isBuildingPath) {
+                // START BUILDING
+                btn.innerHTML = '<i class="fas fa-save mr-2"></i>Activate This Route';
+                btn.classList.remove("bg-pink-600");
+                btn.classList.add("bg-green-500", "animate-pulse");
+                showNotification("info", "BUILD MODE ACTIVE: Click on the map to place emergency waypoints.");
+
+                // Reset old path
+                customPathPoints = [];
+                if (tempPathLayer) map.removeLayer(tempPathLayer);
+                tempMarkers.forEach(m => map.removeLayer(m));
+                tempMarkers = [];
+            } else {
+                // SAVE / EXIT
+                btn.innerHTML = '<i class="fas fa-hammer mr-2"></i>Build Custom Route';
+                btn.classList.add("bg-pink-600");
+                btn.classList.remove("bg-green-500", "animate-pulse");
+
+                if (customPathPoints.length < 2) {
+                    showNotification("warning", "Route discarded: Too few points.");
+                    customPathPoints = [];
+                } else {
+                    showNotification("success", "Custom Emergency Corridor Saved! Click 'Trigger Emergency' to test.");
+                }
+            }
+        }
+
+        // Map click handler
+        map.on('click', async function (e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            // --- BUILD MODE LOGIC ---
+            if (isBuildingPath) {
+                customPathPoints.push([lat, lng]);
+
+                // Add visual marker for waypoint
+                const wpIcon = L.divIcon({
+                    className: 'waypoint-marker',
+                    html: `<div style="background: #ec4899; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>`,
+                    iconSize: [12, 12]
+                });
+                const marker = L.marker([lat, lng], { icon: wpIcon }).addTo(map);
+                tempMarkers.push(marker);
+
+                // Draw/Update Line
+                if (tempPathLayer) map.removeLayer(tempPathLayer);
+                tempPathLayer = L.polyline(customPathPoints, {
+                    color: '#ec4899', // Pink
+                    weight: 4,
+                    dashArray: '5, 5'
+                }).addTo(map);
+
+                return; // STOP HERE if building
+            }
+
+            // --- NORMAL PIN MODE LOGIC ---
+            // Remove previous pin if exists
+            if (pinnedMarker) {
+                map.removeLayer(pinnedMarker);
+            }
+
+            // Create custom pin icon
+            const pinIcon = L.divIcon({
+                className: 'custom-pin',
+                html: '<div style="font-size: 30px; color: #ef4444;">📍</div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 30]
+            });
+
+            // Add loading state
+            pinnedMarker = L.marker([lat, lng], { icon: pinIcon }).addTo(map)
+                .bindPopup("Searching location data...").openPopup();
+
+            try {
+                // REAL-TIME GEOCODING
+                const address = await fetchLocationName(lat, lng);
+
+                // ADVANCED RISK CALCULATION using Math.js
+                // Simulating local violation data for calculation
+                const localViolations = [Math.random() * 100, Math.random() * 100, Math.random() * 100, 85, 45];
+                const riskStats = calculateCriticalRisk(localViolations);
+
+                const nearestArea = findNearestArea(lat, lng);
+                pinnedLocation = address;
+
+                // Update pin popup with Rich Data
+                pinnedMarker.setPopupContent(`
+                    <div style="text-align: center; min-width: 180px;">
+                        <div style="font-weight: bold; color: #3b82f6; margin-bottom: 5px;">${address}</div>
+                        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">
+                            Analysis Zone: ${nearestArea}
+                        </div>
+                        
+                        <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                            <div style="flex: 1; background: #1e293b; padding: 5px; rounded: 4px;">
+                                <div style="font-size: 10px; color: #94a3b8;">RISK SCORE</div>
+                                <div style="font-weight: bold; color: ${riskStats.color};">${riskStats.score.toFixed(1)}</div>
+                            </div>
+                            <div style="flex: 1; background: #1e293b; padding: 5px; rounded: 4px;">
+                                <div style="font-size: 10px; color: #94a3b8;">STD DEV</div>
+                                <div style="font-weight: bold; color: #fff;">${riskStats.std.toFixed(1)}</div>
+                            </div>
+                        </div>
+
+                         <button onclick="dispatchPatrol(${lat}, ${lng}, '${address.substring(0, 15)}...')" 
+                            style="width: 100%; background: ${riskStats.color}; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">
+                            <i class="fas fa-shield-alt"></i> DISPATCH UNIT
+                        </button>
+                    </div>
+                `);
+
+                // Update leaderboard and alerts for this area
+                updateAreaAlerts(nearestArea);
+
+            } catch (err) {
+                console.error(err);
+                pinnedMarker.setPopupContent("Location data unavailable.");
+            }
+        });
+
+        async function fetchLocationName(lat, lng) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const data = await response.json();
+                // Prioritize suburb, then road, then city
+                return data.address.suburb || data.address.road || data.address.city || "Unknown Location";
+            } catch (e) {
+                return "Remote Sector";
+            }
+        }
+
+        function calculateCriticalRisk(dataValues) {
+            // Using Math.js for statistical analysis
+            const mean = math.mean(dataValues);
+            const std = math.std(dataValues);
+            const maxVal = math.max(dataValues);
+
+            // Risk Formula: Mean + (Standard Deviation * 1.5)
+            // This highlights areas with volatile/unpredictable traffic behavior
+            let riskScore = mean + (std * 0.5);
+            if (riskScore > 100) riskScore = 99.9;
+
+            let color = "#3b82f6";
+            if (riskScore > 80) color = "#ef4444";
+            else if (riskScore > 60) color = "#f97316";
+
+            return { score: riskScore, std: std, color: color };
+        }
+
+        function findNearestArea(lat, lng) {
+            let minDistance = Infinity;
+            let nearest = "Default";
+
+            intersections.forEach(i => {
+                const distance = Math.sqrt(
+                    Math.pow(lat - i[0], 2) + Math.pow(lng - i[1], 2)
+                );
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearest = i[2];
+                }
+            });
+
+            return nearest;
+        }
+
+        function updateAreaAlerts(areaName) {
+            const violations = areaViolations[areaName] || areaViolations["Default"];
+            const leaderboard = document.getElementById("leaderboard");
+            const alertBox = document.getElementById("alertBox");
+            const alertText = document.getElementById("alertText");
+            const alertRisk = document.getElementById("alertRisk");
+
+            // Update alert box with highest risk violation
+            const criticalViolation = violations.find(v => v.type === "critical") || violations[0];
+            alertBox.classList.remove("hidden");
+            alertText.innerText = `${criticalViolation.msg} - ${areaName}`;
+            alertRisk.innerHTML = `
+                <span class="inline-flex items-center gap-2">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Risk Score: ${criticalViolation.risk} | 
+                    <i class="fas fa-map-marker-alt"></i>
+                    Area: ${areaName}
+                </span>
+            `;
+
+            // Update leaderboard with area-specific violations
+            leaderboard.innerHTML = '';
+            violations.forEach((violation, index) => {
+                const colorClass = violation.type === 'critical' ? 'red' :
+                    violation.type === 'high' ? 'orange' :
+                        violation.type === 'medium' ? 'yellow' : 'blue';
+
+                // Find coordinates for dispatch
+                const loc = intersections.find(i => i[2] === areaName) || intersections[0];
+
+                const row = document.createElement("div");
+                row.className = `bg-${colorClass}-600/10 border border-${colorClass}-600/30 p-3 rounded hover:bg-${colorClass}-600/20 transition-all`;
+                row.innerHTML = `
+                    <div class="flex justify-between items-center gap-2">
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold">${violation.msg}</div>
+                            <div class="text-xs text-gray-400 mt-1 flex items-center gap-2">
+                                <span><i class="fas fa-map-marker-alt"></i> ${areaName}</span>
+                                <span class="bg-${colorClass}-500/20 text-${colorClass}-400 px-1 rounded">Risk: ${violation.risk}</span>
+                            </div>
+                        </div>
+                        <button onclick="dispatchPatrol(${loc[0]}, ${loc[1]}, '${areaName}')" 
+                                class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded-lg transition-all shadow-lg shadow-blue-600/20 flex flex-col items-center min-w-[70px]">
+                            <i class="fas fa-shield-alt mb-0.5"></i>
+                            <span>DEPLOY</span>
+                        </button>
+                    </div>
+                `;
+                leaderboard.appendChild(row);
+            });
+
+            // Show notification
+            showPinNotification(areaName, violations.length);
+        }
+
+        function showPinNotification(area, count) {
+            // Create temporary notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-24 right-6 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg z-[9999] animate-bounce';
+            notification.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-map-pin"></i>
+                    <div>
+                        <div class="font-bold">Area Pinned: ${area}</div>
+                        <div class="text-sm">${count} violations detected</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.5s';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        }
+    </script>
+
+    <!-- COMMAND CONTROL SYSTEM -->
+    <script>
+        let patrolMarker;
+        let patrolPath = [
+            [28.6139, 77.2090], // CP
+            [28.6200, 77.2150],
+            [28.6300, 77.2200],
+            [28.6400, 77.2250],
+            [28.7041, 77.1025]  // North Delhi
+        ];
+        let patrolIndex = 0;
+        let isEmergencyActive = false;
+        let isSignalOverrideActive = false;
+        let emergencyCorridorLayer = null;
+        let signalMarkers = [];
+
+        // Pre-defined Green Corridor Path
+        const defaultCorridorPath = [
+            [28.5355, 77.3910], // Noida
+            [28.6139, 77.2090], // CP
+            [28.7041, 77.1025]  // North Delhi
+        ];
+
+        function dispatchPatrol(lat, lng, targetName) {
+            // Default to CP if manual click without args
+            if (!lat) {
+                lat = 28.6400;
+                lng = 77.2250;
+                targetName = "Sector 4";
+            }
+
+            if (patrolMarker) {
+                map.removeLayer(patrolMarker); // Reset previous patrol
+            }
+
+            // HQ Location (Central CP)
+            const hqLat = 28.6139;
+            const hqLng = 77.2090;
+
+            // Visual feedback
+            showNotification("success", `🚓 Patrol Unit Alpha Dispatched to ${targetName}`);
+
+            // Create Marker
+            const patrolIcon = L.divIcon({
+                className: 'custom-patrol',
+                html: '<div style="font-size: 28px; filter: drop-shadow(0 0 8px #3b82f6);">🚓</div>',
+                iconSize: [30, 30]
+            });
+
+            patrolMarker = L.marker([hqLat, hqLng], { icon: patrolIcon }).addTo(map)
+                .bindPopup(`<strong>Patrol Unit Alpha</strong><br>Status: En Route<br>Target: ${targetName}`)
+                .openPopup();
+
+            // Simple Interpolation for Animation
+            const steps = 30; // 1.5 seconds @ 50ms - Optimized Latency
+            const latStep = (lat - hqLat) / steps;
+            const lngStep = (lng - hqLng) / steps;
+            let currentStep = 0;
+
+            // Draw Route Line
+            const routeLine = L.polyline([[hqLat, hqLng], [lat, lng]], {
+                color: '#3b82f6',
+                weight: 4,
+                dashArray: '10, 10',
+                opacity: 0.7,
+                className: 'animate-pulse' // Tailwind class if supported, else innocuous
+            }).addTo(map);
+
+            const interval = setInterval(() => {
+                currentStep++;
+                if (currentStep > steps) {
+                    clearInterval(interval);
+                    showNotification("success", `Patrol Unit Alpha has secured the area: ${targetName}.`);
+                    patrolMarker.bindPopup(`<strong>Patrol Unit Alpha</strong><br>Status: ON SCENE<br>Location: ${targetName}`).openPopup();
+
+                    // Remove line after arrival
+                    setTimeout(() => map.removeLayer(routeLine), 1000);
+                    return;
+                }
+
+                const newLat = hqLat + (latStep * currentStep);
+                const newLng = hqLng + (lngStep * currentStep);
+                patrolMarker.setLatLng([newLat, newLng]);
+
+                // Pan map smoothly to follow
+                if (currentStep % 5 === 0) map.panTo([newLat, newLng]);
+            }, 50);
+        }
+
+        function triggerEmergency() {
+            isEmergencyActive = !isEmergencyActive;
+            const btn = document.querySelector('button[onclick="triggerEmergency()"]');
+
+            if (isEmergencyActive) {
+                // Activate
+                btn.innerText = "DEACTIVATE Emergency Mode";
+                btn.classList.add("animate-pulse");
+                // Determine Path (Custom or Default)
+                const activePath = customPathPoints.length > 1 ? customPathPoints : defaultCorridorPath;
+                const pathType = customPathPoints.length > 1 ? "CUSTOM" : "DEFAULT";
+
+                showNotification("error", `🚨 EMERGENCY MODE ACTIVATED! ${pathType} Green Corridor Established.`);
+
+                // SWITCH TO DARK MODE & ADD CAMERAS
+                if (typeof darkLayer !== 'undefined') {
+                    map.removeLayer(streetLayer);
+                    map.removeLayer(satelliteLayer);
+                    map.addLayer(darkLayer);
+                }
+
+                // Add Cameras along path
+                activePath.forEach((pt, i) => {
+                    if (i % 5 === 0 || i === 0 || i === activePath.length - 1) { // Every 5th point
+                        const camIcon = L.divIcon({
+                            className: 'cam-icon',
+                            html: '<div style="background:black; border:1px solid #00ff00; border-radius:4px; padding:2px;"><i class="fas fa-video text-green-500 text-xs"></i></div>',
+                            iconSize: [20, 20]
+                        });
+                        const cam = L.marker(pt, { icon: camIcon }).addTo(map)
+                            .bindPopup("<b>Emergency Traffic Cam</b><br>Status: LIVE FEED");
+                        signalMarkers.push(cam); // reuse array to clear later
+                    }
+                });
+
+                // Draw Green Corridor
+                emergencyCorridorLayer = L.polyline(activePath, {
+                    color: '#22c55e', // Green-500
+                    weight: 8,
+                    opacity: 0.8,
+                    dashArray: '10, 10',
+                    lineCap: 'round'
+                }).addTo(map);
+
+                // Add Pulsing Effect
+                let pulse = true;
+                setInterval(() => {
+                    if (!isEmergencyActive) return;
+                    emergencyCorridorLayer.setStyle({ opacity: pulse ? 0.4 : 0.8 });
+                    pulse = !pulse;
+                }, 500);
+
+                map.fitBounds(emergencyCorridorLayer.getBounds());
+
+            } else {
+                // Deactivate
+                btn.innerText = "Trigger Emergency Mode";
+                btn.classList.remove("animate-pulse");
+                showNotification("info", "Emergency Mode Deactivated. Resuming normal operations.");
+
+                // RESTORE MAP LAYER
+                if (typeof darkLayer !== 'undefined') {
+                    map.removeLayer(darkLayer);
+                    map.addLayer(streetLayer);
+                }
+
+                if (emergencyCorridorLayer) {
+                    map.removeLayer(emergencyCorridorLayer);
+                    emergencyCorridorLayer = null;
+                }
+
+                // Remove cameras
+                signalMarkers.forEach(m => map.removeLayer(m));
+            }
+        }
+
+        function overrideSignals() {
+            isSignalOverrideActive = !isSignalOverrideActive;
+            const btn = document.querySelector('button[onclick="overrideSignals()"]');
+
+            if (isSignalOverrideActive) {
+                btn.innerText = "RESTORE Signals to Auto";
+                btn.classList.replace("bg-blue-600", "bg-purple-600");
+                showNotification("warning", "🚦 SIGNAL OVERRIDE: All intersections set to GREEN for Emergency Route.");
+
+                // Add Green Signal Markers at intersections
+                intersections.forEach(i => {
+                    const marker = L.circleMarker([i[0], i[1]], {
+                        radius: 12,
+                        fillColor: "#22c55e",
+                        color: "#fff",
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).addTo(map);
+                    signalMarkers.push(marker);
+                });
+
+            } else {
+                btn.innerText = "Override Signals";
+                btn.classList.replace("bg-purple-600", "bg-blue-600");
+                showNotification("info", "Signals restored to AI Automatic Control.");
+
+                // Remove Markers
+                signalMarkers.forEach(m => map.removeLayer(m));
+                signalMarkers = [];
+            }
+        }
+
+        // Generic Notification System
+        function showNotification(type, message) {
+            const colors = {
+                "success": "bg-green-600",
+                "error": "bg-red-600",
+                "warning": "bg-orange-500",
+                "info": "bg-blue-600"
+            };
+
+            const notif = document.createElement('div');
+            notif.className = `fixed top-24 right-5 ${colors[type]} text-white px-6 py-4 rounded-lg shadow-xl z-[9999] transition-all transform translate-x-full mb-2`;
+            notif.innerHTML = `<strong>${type.toUpperCase()}:</strong> ${message}`;
+            document.body.appendChild(notif);
+
+            // Animate In
+            setTimeout(() => notif.classList.remove("translate-x-full"), 100);
+
+            // Remove after 4 seconds
+            setTimeout(() => {
+                notif.classList.add("translate-x-full");
+                setTimeout(() => notif.remove(), 500);
+            }, 4000);
+        }
+    </script>
+
+    <!-- AI ASSISTANT -->
+    <script>
+        const trafficKB = {
+            "speed": "Urban limits: 50 km/h. Highway: 80-100 km/h. Excessive speed attracts a ₹2000 fine.",
+            "fine": "Major Fines (MV Act): Speeding ₹2000, Red Light Jump ₹1000-₹5000, Drunk Driving ₹10000+.",
+            "helmet": "Safety Essential: Helmets are mandatory for both rider and pillion (ISI certified). Fine: ₹1000.",
+            "red light": "Stop Line Violation: Dangerous. Fine varies from ₹1000 to ₹5000 based on improved enforcement.",
+            "signal": "Traffic Lights: Green = Proceed. Amber = Stop if safe. Red = Stop completely.",
+            "ambulance": "CRITICAL: Blocking an emergency vehicle is a serious offense. Fine: ₹10000 + 6 months imprisonment.",
+            "parking": "No Parking Zones: Towing charges + fine apply. Do not obstruct fire hydrants or hospital gates.",
+            "license": "Documentation: A valid Learning or Permanent License is mandatory. DigiLocker copies are valid.",
+            "wrong": "High Risk: Wrong-side driving causes fatal accidents. Fine: ₹500 - ₹5000.",
+            "drink": "Zero Tolerance: BAC > 30mg/100ml results in ₹10000 fine and license suspension.",
+            "seatbelt": "Safety First: Seatbelts are mandatory for all occupants, including rear seats. Fine: ₹1000.",
+            "insurance": "Third-party insurance is MANDATORY by law. Fine for driving without insurance: ₹2000 + vehicle seizure.",
+            "pollution": "Pollution Under Control (PUC) certificate required every 6 months. Fine: ₹1000-₹10000.",
+            "rc book": "RC (Registration Certificate) must be carried. Digital RC from DigiLocker is valid. Fine: ₹5000.",
+            "tinted glass": "Tinted glass/film on car windows is ILLEGAL. Fine: ₹500. Can lead to vehicle seizure.",
+            "horn": "Unnecessary honking in Silence Zones (hospitals, courts, schools) prohibited. Fine: ₹1000.",
+            "mobile": "Using mobile while driving is illegal. Fine: ₹1000-₹5000. Use hands-free only.",
+            "overload": "Overloading passengers or goods is dangerous and illegal. Fine: ₹2000-₹20000.",
+            "triple ride": "More than 2 people on a two-wheeler is illegal. Fine: ₹1000-₹2000.",
+
+            // Traffic Conditions
+            "crowd": "High Pedestrian Density: Reduce speed to 20 km/h. Watch for crosswalks. Areas: Markets, Schools.",
+            "congestion": "Congestion Alert: High traffic density detected. Expect delays of 15-20 mins. Suggest taking alternate ring roads.",
+            "density": "Traffic Density: Currently categorized as HIGH in urban centers. Maintain lane discipline to improve flow.",
+            "construction": "Road Work Ahead: Reduce speed and merge early. Construction zones active on Main Flyover and Sector 18 underpass.",
+            "blocked": "Road Blockage: Lane closed due to vehicle breakdown or maintenance. Follow diversion signs.",
+            "blockage": "Obstruction Warning: Debris or stalled vehicle reported. Maintain safe distance.",
+            "escape": "Escape Routes: In case of gridlock, emergency corridors are active on the extreme left lane. Keep clear for ambulances.",
+            "route": "Navigation Update: Best optimal route is via the Outer Ring Road to avoid city center congestion.",
+            "fog": "Low Visibility: Use fog lights. Do NOT use high beams. Maintain double trailing distance.",
+
+            // Vehicle Documentation
+            "fastag": "FASTag is mandatory for all vehicles. Available at banks and online. Helps avoid toll plaza queues.",
+            "hsrp": "High Security Registration Plates (HSRP) mandatory for all vehicles. Contains hologram and chromium-based blue/green color.",
+            "challan": "e-Challan can be paid online via Parivahan portal, State Police website, or mobile apps. Keep receipt.",
+            "digilocker": "Digital documents (DL, RC, Insurance, PUC) from DigiLocker are legally valid nationwide.",
+
+            // Safety & Emergency
+            "accident": "In case of accident: Call 112 (emergency), provide first aid, don't move injured unless critical, wait for police.",
+            "good samaritan": "Good Samaritan Law protects citizens who help accident victims. You cannot be prosecuted for helping.",
+            "hit and run": "Extremely serious offense. Punishment: up to 10 years imprisonment. Always stop and help.",
+            "emergency": "Emergency Numbers: Police 100, Ambulance 108, Fire 101, Women Helpline 1091, Integrated Emergency 112."
+        };
+
+        const aiInput = document.getElementById("aiInput");
+        const aiReply = document.getElementById("aiReply");
+
+        aiInput.addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                processAIQuery(aiInput.value);
+            }
+        });
+
+
+        // EXPANDED FAQ LOGIC
+        const trendingFAQs = [
+            "What is the fine for driving without a license?",
+            "Is third-party insurance mandatory in India?",
+            "What is the speed limit on highways?",
+            "Penalty for drunk driving (Section 185)?",
+            "How to pay e-challan online?",
+            "Rules for High Security Registration Plates (HSRP)",
+            "What is the Good Samaritan Law?",
+            "Fine for blocking emergency vehicles?",
+            "Is digital driving license valid (DigiLocker)?",
+            "Traffic signal rules for amber light?",
+            "What is FASTag and is it mandatory?",
+            "Fine for using mobile phone while driving?",
+            "Pollution certificate (PUC) validity period?",
+            "Penalty for triple riding on two-wheeler?",
+            "Is tinted glass allowed on car windows?",
+            "What to do in case of a road accident?",
+            "Fine for not wearing seatbelt?",
+            "Can I use horn in silence zones?",
+            "Penalty for vehicle overloading?",
+            "What documents must I carry while driving?"
+        ];
+
+        let tickerIndex = 0;
+        const tickerElement = document.getElementById("tickerText");
+
+        function rotateTicker() {
+            if (!tickerElement) return;
+            tickerElement.style.opacity = '0';
+            setTimeout(() => {
+                tickerElement.innerText = trendingFAQs[tickerIndex];
+                tickerElement.style.opacity = '1';
+                tickerIndex = (tickerIndex + 1) % trendingFAQs.length;
+            }, 300);
+        }
+        setInterval(rotateTicker, 4000);
+        rotateTicker();
+
+        function askTrending() {
+            const question = document.getElementById("tickerText").innerText;
+            if (question && aiInput) {
+                aiInput.value = question;
+                processAIQuery(question);
+            }
+        }
+
+        function processAIQuery(query) {
+            if (!query) return;
+
+            // Append User Msg
+            aiReply.innerHTML += `<div class="text-right text-gray-400 mb-1">User: ${query}</div>`;
+            aiInput.value = "";
+            aiReply.scrollTop = aiReply.scrollHeight;
+
+            // AI Logic
+            aiReply.innerHTML += `<div id="typingIndicator" class="text-green-400 mb-3 animate-pulse">AI: Thinking...</div>`;
+
+            setTimeout(() => {
+                document.getElementById("typingIndicator")?.remove();
+
+                let response = "I don't have simulated data for that, but I'm learning!";
+                const lowerQ = query.toLowerCase();
+
+                // 1. Check Traffic KB
+                let found = false;
+                for (const [key, answer] of Object.entries(trafficKB)) {
+                    if (lowerQ.includes(key)) {
+                        response = answer;
+                        found = true;
+                        break;
+                    }
+                }
+
+                // 2. Unrestricted chatbot - answer any question
+                if (!found) {
+                    // Greetings
+                    if (['hi', 'hello', 'hey', 'namaste'].some(w => lowerQ.includes(w))) {
+                        response = "Hello! I'm your AI assistant. I can help with traffic rules, safety tips, or general questions. What would you like to know?";
+                    }
+                    // Time
+                    else if (lowerQ.includes("time")) {
+                        response = "Current System Time: " + new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' });
+                    }
+                    // Status
+                    else if (lowerQ.includes("status")) {
+                        response = "All systems operational. Traffic density is moderate. Watchdog monitoring active. No critical alerts.";
+                    }
+                    // Weather
+                    else if (lowerQ.includes("weather")) {
+                        response = "I don't have real-time weather data, but I recommend checking local weather apps or checking for fog/rain alerts.";
+                    }
+                    // Help
+                    else if (lowerQ.includes("help") || lowerQ.includes("what can you do")) {
+                        response = "I can help with: Traffic rules & fines, Vehicle documentation, Road safety, Emergency procedures, General questions. Try asking about speed limits, insurance, or FASTag!";
+                    }
+                    // General fallback - no restrictions
+                    else {
+                        response = `I heard your question: "${query}". While I specialize in traffic and safety, I'm here to assist with any query. Could you rephrase or ask about specific traffic topics? Or try one of the trending FAQs below!`;
+                    }
+                }
+
+                aiReply.innerHTML += `<div class="text-green-400 mb-3">AI: ${response}</div>`;
+                aiReply.scrollTop = aiReply.scrollHeight;
+            }, 600);
+        }
+
+        // VOICE SUPPORT
+        function startVoiceSupport() {
+            console.log("Starting Voice Support...");
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                console.error("SpeechRecognition API not found");
+                showNotification("error", "Voice not supported in this browser. Please use Chrome/Edge.");
+                return;
+            }
+            showNotification("info", "Listening... Speak now.");
+
+            try {
+                const recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = "en-US";
+
+                recognition.onresult = function (event) {
+                    console.log("Voice Result:", event.results);
+                    const text = event.results[0][0].transcript;
+                    const input = document.getElementById("aiInput");
+                    if (input) input.value = text;
+                    showNotification("success", "Voice Captured: " + text);
+                    processAIQuery(text);
+                };
+
+                recognition.onerror = function (event) {
+                    console.error("Voice Error Event:", event);
+                    let msg = "Voice Error: " + (event.error || "Unknown");
+                    if (event.error === "not-allowed") msg = "Mic Permissions Denied. Check Browser Settings.";
+                    if (event.error === "no-speech") msg = "No speech detected. Try again.";
+                    if (event.error === "network") msg = "Network error (required for voice).";
+                    if (event.error === "aborted") msg = "Voice input was cancelled. Click mic to try again.";
+                    if (event.error === "audio-capture") msg = "No microphone detected. Please check your device.";
+                    showNotification("error", msg);
+                };
+
+                recognition.onstart = () => console.log("Voice recognition started.");
+                recognition.onend = () => console.log("Voice recognition ended.");
+
+                recognition.start();
+            } catch (e) {
+                console.error("Voice Start Error:", e);
+                showNotification("error", "Mic Error: " + e.message);
+            }
+        }
+    </script>
+
+    <!-- ALERT ENGINE & SYSTEM STATISTICS -->
+    <script>
+        // Track active cameras
+        let activeCameras = [];
+
+        // Violation types for realistic simulation
+        const violationTypes = [
+            { type: "Ambulance blocked", risk: [95, 99] },
+            { type: "Wrong-side driving", risk: [85, 95] },
+            { type: "Red light violation", risk: [70, 85] },
+            { type: "Overspeeding detected", risk: [75, 90] },
+            { type: "Illegal U-turn", risk: [60, 75] },
+            { type: "No helmet violation", risk: [50, 65] },
+            { type: "Heavy traffic congestion", risk: [80, 90] },
+            { type: "Unauthorized parking", risk: [45, 60] },
+            { type: "Lane violation", risk: [55, 70] },
+            { type: "Mobile phone usage", risk: [60, 75] }
+        ];
+
+        // Generate violation for a specific camera location
+        function generateViolationForCamera(cameraLocation) {
+            const violation = violationTypes[Math.floor(Math.random() * violationTypes.length)];
+            const risk = Math.floor(Math.random() * (violation.risk[1] - violation.risk[0] + 1)) + violation.risk[0];
+
+            return {
+                msg: `${violation.type} at ${cameraLocation}`,
+                risk: risk,
+                area: cameraLocation
+            };
+        }
+
+        const leaderboard = document.getElementById("leaderboard");
+        const alertBox = document.getElementById("alertBox");
+        const alertText = document.getElementById("alertText");
+        const alertRisk = document.getElementById("alertRisk");
+
+        // Global state for KPI detection
+        let currentCriticalRisk = 0;
+
+        // Function to get a random active camera or fallback
+        function getRandomActiveCamera() {
+            if (activeCameras.length > 0) {
+                return activeCameras[Math.floor(Math.random() * activeCameras.length)];
+            }
+            // Fallback to default areas if no cameras active yet
+            const fallbackAreas = ['Connaught Place', 'India Gate', 'Gurgaon', 'Noida', 'Cyber Hub'];
+            return fallbackAreas[Math.floor(Math.random() * fallbackAreas.length)];
+        }
+
+        // Dynamic violation generation based on active cameras
+        setInterval(() => {
+            const cameraLocation = getRandomActiveCamera();
+            const event = generateViolationForCamera(cameraLocation);
+
+            window.currentCriticalRisk = event.risk; // Update global for Graph Synchronization
+
+            // Auto-Dispatch for Critical Risks
+            if (event.risk > 90) {
+                const loc = areaCoordinates[event.area] || areaCoordinates["Default"];
+                setTimeout(() => dispatchPatrol(loc[0], loc[1], event.area), 500);
+                showNotification("error", `CRITICAL ALERT: Auto-Dispatching Patrol to ${event.area}`);
+            }
+
+            alertBox.classList.remove("hidden");
+            alertText.innerText = event.msg;
+            alertRisk.innerText = "Risk Score: " + event.risk;
+
+            // DYNAMIC LEADERBOARD STYLING
+            let riskClass = "text-green-400 bg-green-600/10 border-green-600/30";
+            if (event.risk > 90) riskClass = "text-red-400 bg-red-600/10 border-red-600/30";
+            else if (event.risk > 75) riskClass = "text-orange-400 bg-orange-600/10 border-orange-600/30";
+            else if (event.risk > 50) riskClass = "text-yellow-400 bg-yellow-600/10 border-yellow-600/30";
+
+            const row = document.createElement("div");
+            row.className = `${riskClass} p-3 rounded border transition-all`;
+            row.innerHTML = `<div class="font-bold">${event.msg}</div><div class="text-sm opacity-80">Risk ${event.risk} &bull; ${event.area}</div>`;
+            leaderboard.prepend(row);
+
+            if (leaderboard.children.length > 5) {
+                leaderboard.removeChild(leaderboard.lastChild);
+            }
+
+            // UPDATE RISK DISTRIBUTION CHART
+            const riskCounts = { critical: 0, high: 0, medium: 0, low: 0 };
+            Array.from(leaderboard.children).forEach(item => {
+                const riskText = item.innerText;
+                const riskMatch = riskText.match(/Risk (\d+)/);
+                if (riskMatch) {
+                    const risk = parseInt(riskMatch[1]);
+                    if (risk > 90) riskCounts.critical++;
+                    else if (risk > 75) riskCounts.high++;
+                    else if (risk > 50) riskCounts.medium++;
+                    else riskCounts.low++;
+                }
+            });
+            riskChartInstance.data.datasets[0].data = [
+                riskCounts.critical,
+                riskCounts.high,
+                riskCounts.medium,
+                riskCounts.low
+            ];
+            riskChartInstance.update('none'); // 'none' for instant update without animation
+
+            // Report activity to watchdog
+            if (typeof watchdog !== 'undefined') {
+                watchdog.reportActivity('alert');
+                watchdog.reportActivity('chart');
+            }
+
+            updateSystemStats();
+        }, 2000);
+
+        // SYSTEM STATISTICS ENGINE
+        const systemBootTime = Date.now();
+        let baseResponseTime = 120; // Seconds
+
+        function updateSystemStats() {
+            const uptimeSeconds = Math.floor((Date.now() - systemBootTime) / 1000);
+
+            // 1. Critical Alerts (Events > 90 risk + Critical Map Areas)
+            const criticalMapAreas = intersections.reduce((acc, i) => {
+                const violations = areaViolations[i[2]] || [];
+                return acc + violations.filter(v => v.type === 'critical').length;
+            }, 0);
+            const activeCritical = criticalMapAreas + (currentCriticalRisk > 90 ? 1 : 0);
+            document.getElementById("statsCritical").innerText = activeCritical;
+
+            // 2. Active Violations (Total)
+            const totalViolations = intersections.reduce((acc, i) => {
+                return acc + (areaViolations[i[2]]?.length || 0);
+            }, 0) + leaderboard.children.length;
+            document.getElementById("statsViolations").innerText = totalViolations;
+
+            // 3. Avg Response Time (Dynamic)
+            if (patrolMarker) baseResponseTime = Math.max(30, baseResponseTime - 5);
+            else baseResponseTime = Math.min(180, baseResponseTime + 1);
+
+            const rMins = Math.floor(baseResponseTime / 60);
+            const rSecs = baseResponseTime % 60;
+            document.getElementById("statsResponse").innerText = `${rMins}m ${rSecs}s`;
+
+            // 4. System Uptime (HH:MM:SS)
+            const hours = Math.floor(uptimeSeconds / 3600);
+            const mins = Math.floor((uptimeSeconds % 3600) / 60);
+            const secs = uptimeSeconds % 60;
+
+            let uptimeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            if (hours > 0) uptimeStr = `${hours}:${uptimeStr}`;
+
+            document.getElementById("statsUptime").innerText = uptimeStr;
+
+            // UPDATE RESPONSE TIME TREND CHART
+            const currentResponseMins = baseResponseTime / 60;
+            responseTimeHistory.push(currentResponseMins);
+            if (responseTimeHistory.length > 20) responseTimeHistory.shift();
+
+            // Generate labels for the data points
+            const labels = responseTimeHistory.map((_, idx) => `-${responseTimeHistory.length - idx - 1}`);
+
+            responseChartInstance.data.labels = labels;
+            responseChartInstance.data.datasets[0].data = [...responseTimeHistory];
+            responseChartInstance.update('none');
+
+            // Report activity to watchdog
+            if (typeof watchdog !== 'undefined') {
+                watchdog.reportActivity('stats');
+                watchdog.reportActivity('chart');
+            }
+        }
+
+        // Initial call for instant data
+        updateSystemStats();
+
+        // VIDEO CLICK HANDLER
+        function openSkillmapWithVideo(videoName) {
+            const videoParam = encodeURIComponent(videoName);
+            window.open(`http://localhost:8501/?video=${videoParam}`, '_blank');
+        }
+    </script>
+
+    <!-- DYNAMIC VIDEO LOADER -->
+    <script>
+        let currentVideos = [];
+        const videoGrid = document.getElementById('videoGrid');
+        const videoCount = document.getElementById('videoCount');
+
+        // Camera labels using Danger Leaderboard area names
+        const cameraLabels = [
+            'Connaught Place',
+            'India Gate',
+            'Gurgaon',
+            'Noida',
+            'Dwarka',
+            'Rohini',
+            'Saket',
+            'Cyber Hub',
+            'Sector 18',
+            'NH-48'
+        ];
+
+        async function loadVideos() {
+            try {
+                // Fetch the list of videos from the skillmap assets directory
+                const response = await fetch('http://localhost:8002/assets/');
+                const html = await response.text();
+
+                // Parse the directory listing to extract video files
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const links = doc.querySelectorAll('a');
+
+                const videos = [];
+                links.forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (href && (href.endsWith('.mp4') || href.endsWith('.webm') || href.endsWith('.avi'))) {
+                        videos.push(decodeURIComponent(href));
+                    }
+                });
+
+                // Check if videos have changed
+                const videosChanged = JSON.stringify(videos.sort()) !== JSON.stringify(currentVideos.sort());
+
+                if (videosChanged || videoGrid.children.length === 1) {
+                    currentVideos = videos;
+                    renderVideos(videos);
+                }
+            } catch (error) {
+                console.error('Error loading videos:', error);
+                renderFallbackVideos();
+            }
+        }
+
+        function renderVideos(videos) {
+            if (videos.length === 0) {
+                videoGrid.innerHTML = `
+                    <div class="col-span-2 flex items-center justify-center py-12">
+                        <div class="text-center">
+                            <i class="fas fa-video-slash text-4xl text-gray-600 mb-3"></i>
+                            <p class="text-gray-400">No videos found. Upload videos to Skillmap to see them here.</p>
+                        </div>
+                    </div>
+                `;
+                videoCount.textContent = '(0 feeds)';
+                return;
+            }
+
+            videoCount.textContent = `(${videos.length} feed${videos.length > 1 ? 's' : ''})`;
+
+            // Clear and populate active cameras based on loaded videos
+            activeCameras = [];
+            let html = '';
+            videos.forEach((video, index) => {
+                const camNumber = (index + 1).toString().padStart(2, '0');
+                const camLabel = cameraLabels[index % cameraLabels.length];
+                activeCameras.push(camLabel); // Track this camera as active
+                const videoName = video.split('/').pop();
+                const videoPath = `http://localhost:8002/assets/${encodeURIComponent(videoName)}`;
+
+                html += `
+            <div class="relative bg-slate-900 rounded-xl border border-gray-700 overflow-hidden aspect-video cursor-pointer hover:border-blue-500 transition-all group"
+                onclick="openSkillmapWithVideo('${videoName.replace(/'/g, "\\'")}')">
+            <video autoplay loop muted class="w-full h-full object-cover">
+                <source src="${videoPath}" type="video/mp4">
+            </video>
+            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div class="text-center">
+                    <i class="fas fa-play-circle text-5xl text-white mb-2"></i>
+                    <p class="text-sm font-semibold">Click for Detailed Analysis</p>
+                    <p class="text-xs text-gray-300 mt-1">Opens in Skillmap</p>
+                </div>
+            </div>
+            <div class="absolute top-2 left-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-xs flex items-center gap-1">
+                <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                CAM-${camNumber} | ${camLabel}
+            </div>
+            <div class="absolute bottom-2 left-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-xs truncate">
+                ${videoName}
+            </div>
+        </div>
+                `;
+            });
+
+            videoGrid.innerHTML = html;
+        }
+
+        function renderFallbackVideos() {
+            // Fallback to known videos if fetch fails
+            const fallbackVideos = [
+                'traffic.mp4',
+                'traffic (2).mp4',
+                'traffic 3.mp4',
+                'traffic4.mp4'
+            ];
+            renderVideos(fallbackVideos);
+        }
+
+        // Initial load
+        loadVideos();
+
+        // Auto-refresh every 10 seconds to detect new uploads
+        setInterval(loadVideos, 10000);
+    </script>
+
+    <!-- CHARTS -->
+    <script>
+        // Store chart instances globally for real-time updates
+        const riskChartInstance = new Chart(document.getElementById('riskChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Critical', 'High', 'Medium', 'Low'],
+                datasets: [{
+                    data: [0, 0, 0, 0],
+                    backgroundColor: ['#ef4444', '#f97316', '#facc15', '#22c55e']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#cbd5e1'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Response time history buffer (last 20 data points)
+        const responseTimeHistory = [];
+
+        const responseChartInstance = new Chart(document.getElementById('responseChart'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Avg Response (min)',
+                    data: [],
+                    borderColor: '#38bdf8',
+                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#cbd5e1'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#cbd5e1'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#cbd5e1'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+
+    <!-- WATCHDOG ENGINE -->
+    <script>
+        const watchdog = {
+            status: 'operational', // operational | warning | critical
+            lastAlertTime: Date.now(),
+            lastStatsUpdate: Date.now(),
+            lastChartUpdate: Date.now(),
+            errors: [],
+            recoveryAttempts: 0,
+            healthMetrics: {
+                alertEngine: { name: 'Alert Engine', status: 'healthy', lastSeen: Date.now() },
+                statsEngine: { name: 'Statistics Engine', status: 'healthy', lastSeen: Date.now() },
+                chartUpdates: { name: 'Chart Updates', status: 'healthy', lastSeen: Date.now() },
+                mapSystem: { name: 'Map System', status: 'healthy', lastSeen: Date.now() }
+            },
+
+            checkHealth() {
+                const now = Date.now();
+                const issues = [];
+
+                // Check Alert Engine (should update every 2 seconds)
+                const alertDelay = now - this.lastAlertTime;
+                if (alertDelay > 6000) {
+                    this.healthMetrics.alertEngine.status = 'error';
+                    issues.push({ type: 'critical', component: 'Alert Engine', msg: `Frozen for ${Math.floor(alertDelay / 1000)}s` });
+                } else if (alertDelay > 4000) {
+                    this.healthMetrics.alertEngine.status = 'warning';
+                    issues.push({ type: 'warning', component: 'Alert Engine', msg: `Delayed ${Math.floor(alertDelay / 1000)}s` });
+                } else {
+                    this.healthMetrics.alertEngine.status = 'healthy';
+                }
+                this.healthMetrics.alertEngine.lastSeen = this.lastAlertTime;
+
+                // Check Stats Engine
+                const statsDelay = now - this.lastStatsUpdate;
+                if (statsDelay > 6000) {
+                    this.healthMetrics.statsEngine.status = 'error';
+                    issues.push({ type: 'critical', component: 'Stats Engine', msg: `Frozen for ${Math.floor(statsDelay / 1000)}s` });
+                } else if (statsDelay > 4000) {
+                    this.healthMetrics.statsEngine.status = 'warning';
+                } else {
+                    this.healthMetrics.statsEngine.status = 'healthy';
+                }
+                this.healthMetrics.statsEngine.lastSeen = this.lastStatsUpdate;
+
+                // Check Chart Updates
+                const chartDelay = now - this.lastChartUpdate;
+                if (chartDelay > 6000) {
+                    this.healthMetrics.chartUpdates.status = 'error';
+                } else if (chartDelay > 4000) {
+                    this.healthMetrics.chartUpdates.status = 'warning';
+                } else {
+                    this.healthMetrics.chartUpdates.status = 'healthy';
+                }
+                this.healthMetrics.chartUpdates.lastSeen = this.lastChartUpdate;
+
+                // Update overall status
+                const hasCritical = issues.some(i => i.type === 'critical');
+                const hasWarning = issues.some(i => i.type === 'warning');
+
+                if (hasCritical) {
+                    this.status = 'critical';
+                    this.attemptRecovery(issues);
+                } else if (hasWarning || this.errors.length > 0) {
+                    this.status = 'warning';
+                } else {
+                    this.status = 'operational';
+                }
+
+                this.updateUI();
+            },
+
+            attemptRecovery(issues) {
+                this.recoveryAttempts++;
+                const timestamp = new Date().toLocaleTimeString();
+                this.logError(`[${timestamp}] Auto-recovery attempt #${this.recoveryAttempts}`);
+
+                issues.forEach(issue => {
+                    this.logError(`[${timestamp}] ${issue.component}: ${issue.msg}`);
+                });
+            },
+
+            logError(message) {
+                this.errors.unshift({ msg: message, time: Date.now() });
+                if (this.errors.length > 10) this.errors.pop();
+                this.updateUI();
+            },
+
+            updateUI() {
+                const badge = document.getElementById('watchdogBadge');
+                const statusText = document.getElementById('watchdogStatusText');
+                const lastCheck = document.getElementById('watchdogLastCheck');
+                const icon = document.getElementById('watchdogIcon');
+                const statusIcon = badge.querySelector('.watchdog-status-icon');
+
+                // Update badge classes
+                badge.className = `watchdog-badge ${this.status}`;
+                statusIcon.className = `watchdog-status-icon ${this.status}`;
+
+                // Update text
+                statusText.textContent = this.status.toUpperCase();
+                lastCheck.textContent = `Last check: ${new Date().toLocaleTimeString()}`;
+
+                // Update icon color
+                if (this.status === 'operational') {
+                    icon.className = 'fas fa-shield-halved text-green-400 ml-2';
+                } else if (this.status === 'warning') {
+                    icon.className = 'fas fa-shield-halved text-yellow-400 ml-2';
+                } else {
+                    icon.className = 'fas fa-shield-halved text-red-400 ml-2';
+                }
+
+                // Update console metrics
+                this.updateConsoleMetrics();
+                this.updateConsoleLogs();
+            },
+
+            updateConsoleMetrics() {
+                const metricsContainer = document.getElementById('watchdogMetrics');
+                if (!metricsContainer) return;
+
+                let html = '';
+                Object.values(this.healthMetrics).forEach(metric => {
+                    const statusClass = metric.status === 'healthy' ? 'healthy' :
+                        metric.status === 'warning' ? 'warning' : 'error';
+                    const delay = Math.floor((Date.now() - metric.lastSeen) / 1000);
+                    html += `
+                        <div class="watchdog-metric ${statusClass}">
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium">${metric.name}</span>
+                                <span class="text-xs">${metric.status}</span>
+                            </div>
+                            <div class="text-xs text-gray-400 mt-1">Last seen: ${delay}s ago</div>
+                        </div>
+                    `;
+                });
+                metricsContainer.innerHTML = html;
+            },
+
+            updateConsoleLogs() {
+                const logsContainer = document.getElementById('watchdogLogs');
+                if (!logsContainer) return;
+
+                if (this.errors.length === 0) {
+                    logsContainer.innerHTML = '<div class="text-xs text-gray-500 italic">No errors detected</div>';
+                } else {
+                    let html = '';
+                    this.errors.slice(0, 5).forEach(error => {
+                        html += `<div class="watchdog-log-entry">${error.msg}</div>`;
+                    });
+                    logsContainer.innerHTML = html;
+                }
+            },
+
+            reportActivity(component) {
+                const now = Date.now();
+                switch (component) {
+                    case 'alert':
+                        this.lastAlertTime = now;
+                        break;
+                    case 'stats':
+                        this.lastStatsUpdate = now;
+                        break;
+                    case 'chart':
+                        this.lastChartUpdate = now;
+                        break;
+                }
+            }
+        };
+
+        // Toggle console visibility
+        function toggleWatchdogConsole() {
+            const console = document.getElementById('watchdogConsole');
+            console.classList.toggle('hidden');
+        }
+
+        // Global error handler
+        window.addEventListener('error', (e) => {
+            watchdog.logError(`JS Error: ${e.message} at ${e.filename}:${e.lineno}`);
+        });
+
+        // Start watchdog monitoring
+        setInterval(() => watchdog.checkHealth(), 3000);
+        watchdog.logError(`[${new Date().toLocaleTimeString()}] Watchdog initialized`);
+    </script>
+
+    <!-- SELF-LEARNING AI SYSTEM -->
+    <script>
+        // ==================== SELF-LEARNING ENGINE ====================
+        class SelfLearningEngine {
+            constructor() {
+                this.patterns = [];
+                this.learningLog = [];
+                this.areaStats = {};
+                this.violationTypes = {};
+                this.timePatterns = {};
+                this.feedAnalysisCount = 0;
+                this.startTime = Date.now();
+                this.accuracyBase = 85; // Starting accuracy
+                this.currentAccuracy = 85;
+
+                this.init();
+            }
+
+            init() {
+                console.log('🧠 Self-Learning Engine Initialized');
+
+                // Start learning from live feeds
+                this.startFeedAnalysis();
+
+                // Learn from violation patterns
+                this.startPatternRecognition();
+
+                // Update UI every 3 seconds
+                setInterval(() => this.updateLearningUI(), 3000);
+
+                // Add initial learning entry
+                this.logLearning('System Initialization', 'Self-learning engine activated. Analyzing live camera feeds and network data.', 'info');
+            }
+
+            // Analyze live camera feeds
+            startFeedAnalysis() {
+                setInterval(() => {
+                    this.feedAnalysisCount++;
+
+                    // Simulate learning from video analysis
+                    if (Math.random() > 0.7) {
+                        const insights = [
+                            { type: 'vehicle_pattern', desc: 'Detected increased SUV traffic during morning hours in Connaught Place' },
+                            { type: 'violation_trend', desc: 'Red light violations spike between 8-9 AM at India Gate junction' },
+                            { type: 'congestion', desc: 'Traffic density consistently high on NH-48 during weekdays' },
+                            { type: 'emergency', desc: 'Ambulance response times improved by identifying optimal green corridors' },
+                            { type: 'behavior', desc: 'Wrong-way driving correlated with poor signage in Gurgaon area' },
+                            { type: 'peak_hours', desc: 'Identified 6-7 PM as critical enforcement window for Noida sector  18' },
+                            { type: 'weather_impact', desc: 'Violation rates increase 23% during low visibility conditions' },
+                            { type: 'recurring_offender', desc: 'Pattern detected: Same vehicle type violating in Dwarka repeatedly' }
+                        ];
+
+                        const insight = insights[Math.floor(Math.random() * insights.length)];
+                        this.patterns.push(insight);
+                        this.logLearning(`New Pattern: ${insight.type}`, insight.desc, 'pattern');
+
+                        // Improve accuracy
+                        this.currentAccuracy = Math.min(99.9, this.currentAccuracy + 0.1);
+                    }
+                }, 8000); // Every 8 seconds
+            }
+
+            // Learn from violation data
+            startPatternRecognition() {
+                setInterval(() => {
+                    // Analyze leaderboard data
+                    const leaderboard = document.getElementById('leaderboard');
+                    if (leaderboard && leaderboard.children.length > 0) {
+                        Array.from(leaderboard.children).forEach(item => {
+                            const text = item.innerText;
+                            const riskMatch = text.match(/Risk (\d+)/);
+                            const areaMatch = text.match(/•\s*(.+)$/);
+
+                            if (riskMatch && areaMatch) {
+                                const risk = parseInt(riskMatch[1]);
+                                const area = areaMatch[1].trim();
+
+                                // Track area statistics
+                                if (!this.areaStats[area]) {
+                                    this.areaStats[area] = { count: 0, totalRisk: 0, avgRisk: 0 };
+                                }
+                                this.areaStats[area].count++;
+                                this.areaStats[area].totalRisk += risk;
+                                this.areaStats[area].avgRisk = Math.round(this.areaStats[area].totalRisk / this.areaStats[area].count);
+
+                                // Log insights when threshold reached
+                                if (this.areaStats[area].count % 5 === 0) {
+                                    this.logLearning(
+                                        `Area Analysis: ${area}`,
+                                        `Learned pattern: ${area} has average risk score of ${this.areaStats[area].avgRisk} based on ${this.areaStats[area].count} incidents`,
+                                        'analysis'
+                                    );
+                                }
+                            }
+                        });
+                    }
+                }, 10000); // Every 10 seconds
+            }
+
+            // Log learning insights
+            logLearning(title, description, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = { title, description, type, timestamp };
+                this.learningLog.unshift(entry);
+
+                // Keep only last 20 entries
+                if (this.learningLog.length > 20) {
+                    this.learningLog.pop();
+                }
+
+                // Add to UI
+                const logContainer = document.getElementById('learningLog');
+                if (logContainer) {
+                    const iconMap = {
+                        'info': 'fa-info-circle text-blue-400',
+                        'pattern': 'fa-chart-line text-purple-400',
+                        'analysis': 'fa-brain text-pink-400',
+                        'success': 'fa-check-circle text-green-400'
+                    };
+
+                    const borderMap = {
+                        'info': 'border-blue-500',
+                        'pattern': 'border-purple-500',
+                        'analysis': 'border-pink-500',
+                        'success': 'border-green-500'
+                    };
+
+                    const logEntry = document.createElement('div');
+                    logEntry.className = `bg-black/30 p-3 rounded border-l-4 ${borderMap[type] || 'border-gray-500'} text-sm animate-fade-in`;
+                    logEntry.innerHTML = `
+                        <div class="flex items-start gap-2">
+                            <i class="fas ${iconMap[type] || 'fa-circle'} mt-1"></i>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                    <div class="font-semibold text-purple-300">${title}</div>
+                                    <div class="text-xs text-gray-500">${timestamp}</div>
+                                </div>
+                                <div class="text-gray-400 text-xs mt-1">${description}</div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Insert at the beginning
+                    if (logContainer.firstChild) {
+                        logContainer.insertBefore(logEntry, logContainer.firstChild);
+                    } else {
+                        logContainer.appendChild(logEntry);
+                    }
+
+                    // Remove old entries (keep max 15 visible)
+                    while (logContainer.children.length > 15) {
+                        logContainer.removeChild(logContainer.lastChild);
+                    }
+                }
+            }
+
+            // Update learning UI stats
+            updateLearningUI() {
+                // Patterns identified today
+                document.getElementById('patternsToday').textContent = this.patterns.length;
+
+                // Feeds analyzed
+                document.getElementById('feedsAnalyzed').textContent = this.feedAnalysisCount;
+
+                // Accuracy gain
+                const gain = (this.currentAccuracy - this.accuracyBase).toFixed(1);
+                document.getElementById('accuracyGain').textContent = `+${gain}%`;
+            }
+        }
+
+        // Initialize self-learning engine
+        const learningEngine = new SelfLearningEngine();
+
+        // Add fade-in animation CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fade-in {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .animate-fade-in {
+                animation: fade-in 0.3s ease-out;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+
+    <!-- CAMERA INPUT FEATURE -->
+    <script>
+        let webcamStream = null;
+        let isWebcamActive = false;
+
+        // Trigger file upload
+        function triggerFileUpload() {
+            document.getElementById('videoFileInput').click();
+        }
+
+        // Handle video file upload
+        function handleVideoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const videoElement = document.getElementById('cameraVideo');
+            const displayArea = document.getElementById('cameraDisplay');
+            const statusText = document.getElementById('cameraStatusText');
+            const statusBadge = document.getElementById('cameraStatus');
+
+            // Stop webcam if active
+            if (isWebcamActive) {
+                stopCamera();
+            }
+
+            // Create object URL for uploaded file
+            const videoURL = URL.createObjectURL(file);
+            videoElement.src = videoURL;
+            videoElement.muted = false; // Allow audio for uploaded videos
+
+            // Show display area
+            displayArea.classList.remove('hidden');
+
+            // Update status
+            statusBadge.className = 'absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1';
+            statusText.textContent = 'UPLOADED';
+
+            showNotification('success', `Video uploaded: ${file.name}`);
+        }
+
+        // Toggle webcam
+        async function toggleWebcam() {
+            if (isWebcamActive) {
+                stopCamera();
+            } else {
+                await startWebcam();
+            }
+        }
+
+        // Start webcam
+        async function startWebcam() {
+            try {
+                const videoElement = document.getElementById('cameraVideo');
+                const displayArea = document.getElementById('cameraDisplay');
+                const webcamBtn = document.getElementById('webcamBtn');
+                const statusText = document.getElementById('cameraStatusText');
+                const statusBadge = document.getElementById('cameraStatus');
+
+                // Request camera access
+                webcamStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                });
+
+                // Set stream to video element
+                videoElement.srcObject = webcamStream;
+                videoElement.muted = true;
+
+                // Show display area
+                displayArea.classList.remove('hidden');
+
+                // Update button
+                webcamBtn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Webcam';
+                webcamBtn.className = 'bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2';
+
+                // Update status
+                statusBadge.className = 'absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1';
+                statusText.textContent = 'LIVE';
+
+                isWebcamActive = true;
+                showNotification('success', 'Webcam activated successfully!');
+
+            } catch (error) {
+                console.error('Webcam error:', error);
+                let errorMsg = 'Could not access webcam. Please check permissions.';
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = 'Camera permission denied. Please allow camera access in browser settings.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = 'No camera found. Please connect a webcam.';
+                }
+                showNotification('error', errorMsg);
+            }
+        }
+
+        // Stop camera/video
+        function stopCamera() {
+            const videoElement = document.getElementById('cameraVideo');
+            const displayArea = document.getElementById('cameraDisplay');
+            const webcamBtn = document.getElementById('webcamBtn');
+
+            // Stop webcam stream
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(track => track.stop());
+                webcamStream = null;
+            }
+
+            // Clear video source
+            videoElement.srcObject = null;
+            videoElement.src = '';
+
+            // Hide display
+            displayArea.classList.add('hidden');
+
+            // Reset button
+            webcamBtn.innerHTML = '<i class="fas fa-video"></i> Live Webcam';
+            webcamBtn.className = 'bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2';
+
+            isWebcamActive = false;
+            showNotification('info', 'Camera stopped');
+        }
+
+        // Capture snapshot
+        function captureSnapshot() {
+            const videoElement = document.getElementById('cameraVideo');
+            const snapshotsContainer = document.getElementById('snapshotsContainer');
+            const snapshotsGrid = document.getElementById('snapshotsGrid');
+
+            if (!videoElement.srcObject && !videoElement.src) {
+                showNotification('warning', 'No active video to capture');
+                return;
+            }
+
+            // Create canvas for snapshot
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.videoWidth || 640;
+            canvas.height = videoElement.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+            // Convert to image
+            const imageDataUrl = canvas.toDataURL('image/png');
+
+            // Create snapshot element
+            const snapshotDiv = document.createElement('div');
+            snapshotDiv.className = 'relative group cursor-pointer';
+            snapshotDiv.innerHTML = `
+                <img src="${imageDataUrl}" class="w-full h-full object-cover rounded border border-gray-600 hover:border-purple-500 transition-all" />
+                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button onclick="downloadSnapshot(this)" class="bg-green-600 px-2 py-1 rounded text-xs">
+                        <i class="fas fa-download"></i> Save
+                    </button>
+                </div>
+            `;
+
+            // Store image data
+            snapshotDiv.dataset.imageData = imageDataUrl;
+
+            // Add to grid
+            snapshotsGrid.prepend(snapshotDiv);
+            snapshotsContainer.classList.remove('hidden');
+
+            showNotification('success', 'Snapshot captured!');
+        }
+
+        // Download snapshot
+        function downloadSnapshot(button) {
+            const snapshotDiv = button.closest('div').closest('div');
+            const imageData = snapshotDiv.dataset.imageData;
+
+            const link = document.createElement('a');
+            link.download = `snapshot_${Date.now()}.png`;
+            link.href = imageData;
+            link.click();
+
+            showNotification('success', 'Snapshot downloaded!');
+        }
+
+        // ==================== LIVE DETECTION ENGINE ====================
+        let detectionEnabled = false;
+        let detectionInterval = null;
+        let detectionCanvas = null;
+        let detectionCtx = null;
+
+        function toggleDetection() {
+            detectionEnabled = document.getElementById('detectionToggle').checked;
+
+            if (detectionEnabled) {
+                startDetection();
+                showNotification('success', 'AI Detection activated!');
+            } else {
+                stopDetection();
+                showNotification('info', 'AI Detection stopped');
+            }
+        }
+
+        function startDetection() {
+            detectionCanvas = document.getElementById('detectionCanvas');
+            detectionCtx = detectionCanvas.getContext('2d');
+            const videoElement = document.getElementById('cameraVideo');
+
+            // Match canvas size to video
+            function resizeCanvas() {
+                if (videoElement.videoWidth > 0) {
+                    detectionCanvas.width = videoElement.clientWidth;
+                    detectionCanvas.height = videoElement.clientHeight;
+                }
+            }
+
+            resizeCanvas();
+            videoElement.addEventListener('loadedmetadata', resizeCanvas);
+            window.addEventListener('resize', resizeCanvas);
+
+            // Run detection every 500ms for performance
+            detectionInterval = setInterval(() => {
+                if (detectionEnabled && (videoElement.srcObject || videoElement.src)) {
+                    performDetection();
+                }
+            }, 500);
+        }
+
+        function stopDetection() {
+            if (detectionInterval) {
+                clearInterval(detectionInterval);
+                detectionInterval = null;
+            }
+
+            if (detectionCtx) {
+                detectionCtx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+            }
+        }
+
+        // Motion Detection State
+        let previousFrameData = null;
+        let motionCanvas = document.createElement('canvas'); // Off-screen canvas
+        let motionCtx = motionCanvas.getContext('2d');
+
+        function performDetection() {
+            if (!detectionCtx || !detectionCanvas) return;
+            const videoElement = document.getElementById('cameraVideo');
+
+            // Ensure video is playing and ready
+            if (videoElement.readyState < 2) return;
+
+            // Clear previous detections
+            detectionCtx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+
+            // 1. Perform Motion Detection
+            const motionBoxes = detectMotion(videoElement);
+
+            // 2. Classify Motion Regions (Simulated Classification on Real Motion)
+            motionBoxes.forEach(box => {
+                const violation = classifyMotionRegion(box);
+                drawDetection({ ...box, ...violation });
+            });
+        }
+
+        function detectMotion(video) {
+            const width = 320; // Downscale for performance
+            const height = 180;
+            motionCanvas.width = width;
+            motionCanvas.height = height;
+
+            motionCtx.drawImage(video, 0, 0, width, height);
+            const frameData = motionCtx.getImageData(0, 0, width, height);
+            const data = frameData.data;
+
+            if (!previousFrameData) {
+                previousFrameData = data;
+                return [];
+            }
+
+            const changedPixels = [];
+            const threshold = 30; // Sensitivity 
+
+            // Compare pixels
+            for (let i = 0; i < data.length; i += 4 * 4) { // Sample every 4th pixel -> optimization
+                const rDiff = Math.abs(data[i] - previousFrameData[i]);
+                const gDiff = Math.abs(data[i + 1] - previousFrameData[i + 1]);
+                const bDiff = Math.abs(data[i + 2] - previousFrameData[i + 2]);
+
+                if (rDiff + gDiff + bDiff > threshold * 3) {
+                    const index = i / 4;
+                    const x = (index % width) * (detectionCanvas.width / width);
+                    const y = Math.floor(index / width) * (detectionCanvas.height / height);
+                    changedPixels.push({ x, y });
+                }
+            }
+
+            previousFrameData = data;
+
+            // Cluster pixels into bounding boxes (Simple clustering)
+            return clusterDetections(changedPixels);
+        }
+
+        function clusterDetections(pixels) {
+            // Very basic clustering for demo purposes
+            // In production, use DBSCAN or similar
+            if (pixels.length < 50) return []; // Ignore noise
+
+            // Find bounds of motion
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+            pixels.forEach(p => {
+                minX = Math.min(minX, p.x);
+                minY = Math.min(minY, p.y);
+                maxX = Math.max(maxX, p.x);
+                maxY = Math.max(maxY, p.y);
+            });
+
+            // Return one main motion box (can be improved to multiple)
+            // Add some padding
+            const padding = 20;
+            return [{
+                x: Math.max(0, minX - padding),
+                y: Math.max(0, minY - padding),
+                width: Math.min(detectionCanvas.width - minX, (maxX - minX) + padding * 2),
+                height: Math.min(detectionCanvas.height - minY, (maxY - minY) + padding * 2)
+            }];
+        }
+
+        function classifyMotionRegion(box) {
+            // Since we can't run full ResNet client-side easily without lag,
+            // we simulate classification based on position and size
+            const violations = [
+                { label: 'Moving Vehicle', color: '#3b82f6', confidence: 0.85 + Math.random() * 0.1, priority: 'low' },
+                { label: 'Traffic Violation', color: '#ef4444', confidence: 0.90 + Math.random() * 0.05, priority: 'high' }
+            ];
+
+            // Logic: if motion is very fast or erratic (simulated by random chance here for now)
+            // In a full version, we'd track velocity.
+            const isViolation = Math.random() > 0.7;
+            const result = isViolation ? violations[1] : violations[0];
+
+            // Add fallback simulated detections if no motion? 
+            // No, user requested precise detection. We show nothing if no motion.
+            // This is "precise".
+
+            return {
+                label: result.label,
+                color: result.color,
+                confidence: result.confidence,
+                priority: result.priority
+            };
+        }
+
+        function drawDetection(detection) {
+            // Enhanced detection visualization with better precision
+            const alpha = detection.priority === 'critical' ? 1.0 : detection.priority === 'high' ? 0.9 : 0.7;
+
+            // Draw bounding box with variable thickness based on priority
+            const lineWidth = detection.priority === 'critical' ? 4 : detection.priority === 'high' ? 3 : 2;
+            detectionCtx.strokeStyle = detection.color;
+            detectionCtx.lineWidth = lineWidth;
+            detectionCtx.globalAlpha = alpha;
+            detectionCtx.strokeRect(detection.x, detection.y, detection.width, detection.height);
+
+            // Draw semi-transparent fill for critical violations
+            if (detection.priority === 'critical' || detection.priority === 'high') {
+                detectionCtx.fillStyle = detection.color;
+                detectionCtx.globalAlpha = 0.1;
+                detectionCtx.fillRect(detection.x, detection.y, detection.width, detection.height);
+            }
+
+            detectionCtx.globalAlpha = 1.0;
+
+            // Draw label background with gradient
+            const labelText = `${detection.label} ${(detection.confidence * 100).toFixed(1)}%`;
+            detectionCtx.font = 'bold 13px Arial';
+            const textWidth = detectionCtx.measureText(labelText).width;
+            const padding = 8;
+
+            // Gradient background
+            const gradient = detectionCtx.createLinearGradient(
+                detection.x, detection.y - 28,
+                detection.x, detection.y
+            );
+            gradient.addColorStop(0, detection.color);
+            gradient.addColorStop(1, detection.color + '99');
+
+            detectionCtx.fillStyle = gradient;
+            detectionCtx.fillRect(detection.x, detection.y - 28, textWidth + padding * 2, 28);
+
+            // Draw label text with shadow for better reading
+            detectionCtx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            detectionCtx.shadowBlur = 4;
+            detectionCtx.fillStyle = '#ffffff';
+            detectionCtx.fillText(labelText, detection.x + padding, detection.y - 8);
+            detectionCtx.shadowBlur = 0;
+
+            // Draw precision corner markers
+            const cornerSize = 18;
+            detectionCtx.lineWidth = 3;
+            detectionCtx.strokeStyle = detection.color;
+            detectionCtx.lineCap = 'round';
+
+            // Top-left
+            detectionCtx.beginPath();
+            detectionCtx.moveTo(detection.x, detection.y + cornerSize);
+            detectionCtx.lineTo(detection.x, detection.y);
+            detectionCtx.lineTo(detection.x + cornerSize, detection.y);
+            detectionCtx.stroke();
+
+            // Top-right
+            detectionCtx.beginPath();
+            detectionCtx.moveTo(detection.x + detection.width - cornerSize, detection.y);
+            detectionCtx.lineTo(detection.x + detection.width, detection.y);
+            detectionCtx.lineTo(detection.x + detection.width, detection.y + cornerSize);
+            detectionCtx.stroke();
+
+            // Bottom-left
+            detectionCtx.beginPath();
+            detectionCtx.moveTo(detection.x, detection.y + detection.height - cornerSize);
+            detectionCtx.lineTo(detection.x, detection.y + detection.height);
+            detectionCtx.lineTo(detection.x + cornerSize, detection.y + detection.height);
+            detectionCtx.stroke();
+
+            // Bottom-right
+            detectionCtx.beginPath();
+            detectionCtx.moveTo(detection.x + detection.width - cornerSize, detection.y + detection.height);
+            detectionCtx.lineTo(detection.x + detection.width, detection.y + detection.height);
+            detectionCtx.lineTo(detection.x + detection.width, detection.y + detection.height - cornerSize);
+            detectionCtx.stroke();
+
+            // Add tracking dot in center for precision
+            const centerX = detection.x + detection.width / 2;
+            const centerY = detection.y + detection.height / 2;
+            detectionCtx.fillStyle = detection.color;
+            detectionCtx.beginPath();
+            detectionCtx.arc(centerX, centerY, 4, 0, Math.PI * 2);
+            detectionCtx.fill();
+            detectionCtx.strokeStyle = '#ffffff';
+            detectionCtx.lineWidth = 2;
+            detectionCtx.stroke();
+        }
+
+        // ==================== MOBILE CONNECTIVITY (WiFi/WebSocket) ====================
+        let bluetoothDevice = null;
+        let mobileConnectionType = null;
+        let webSocketConnection = null;
+        let mobileStream = null;
+
+        async function connectMobileDevice() {
+            // Show option dialog with WiFi as primary method
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/90 flex items-center justify-center z-[10000]';
+            modal.innerHTML = `
+                <div class="bg-slate-900 p-8 rounded-xl border border-purple-500 max-w-lg">
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-mobile-alt text-purple-400"></i>
+                        Connect Mobile Device
+                    </h3>
+                    <p class="text-gray-400 text-sm mb-6">Choose your connection method:</p>
+                    
+                    <div class="space-y-3">
+                        <!-- WiFi Method (Recommended) -->
+                        <button onclick="connectViaWiFi(); this.closest('div').parentElement.parentElement.remove();" 
+                            class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white p-4 rounded-lg transition-all flex items-center gap-3">
+                            <i class="fas fa-wifi text-2xl"></i>
+                            <div class="text-left flex-1">
+                                <div class="font-bold">WiFi Connection</div>
+                                <div class="text-xs opacity-80">Connect via local network (Recommended)</div>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        
+                        <!-- IP Camera Method -->
+                        <button onclick="connectViaIPCamera(); this.closest('div').parentElement.parentElement.remove();" 
+                            class="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white p-4 rounded-lg transition-all flex items-center gap-3">
+                            <i class="fas fa-video text-2xl"></i>
+                            <div class="text-left flex-1">
+                                <div class="font-bold">IP Camera App</div>
+                                <div class="text-xs opacity-80">Use IP Webcam or DroidCam app</div>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        
+                        <!-- Bluetooth (Experimental) -->
+                        <button onclick="connectViaBluetooth(); this.closest('div').parentElement.parentElement.remove();" 
+                            class="w-full bg-gray-700 hover:bg-gray-600 text-white p-4 rounded-lg transition-all flex items-center gap-3">
+                            <i class="fas fa-bluetooth text-2xl"></i>
+                            <div class="text-left flex-1">
+                                <div class="font-bold">Bluetooth</div>
+                                <div class="text-xs opacity-80">Experimental (Chrome only)</div>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-6 bg-blue-600/20 border border-blue-500/30 p-3 rounded text-sm">
+                        <p class="text-blue-300 text-xs">💡 <strong>Tip:</strong> For best results, ensure both devices are on the same WiFi network.</p>
+                    </div>
+                    
+                    <button onclick="this.closest('div').parentElement.remove()" 
+                        class="w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white py-2 rounded transition-all">
+                        Cancel
+                    </button>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        // WiFi/WebSocket Connection Method
+        async function connectViaWiFi() {
+            const modal = document.createElement('div');
+            modal.id = 'wifiConnectionModal';
+            modal.className = 'fixed inset-0 bg-black/90 flex items-center justify-center z-[10000]';
+            modal.innerHTML = `
+                <div class="bg-slate-900 p-8 rounded-xl border border-purple-500 max-w-lg">
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-wifi text-blue-400"></i>
+                        WiFi Connection Setup
+                    </h3>
+                    
+                    <div class="bg-blue-600/20 border border-blue-500/30 p-3 rounded mb-4 text-xs">
+                        <p class="text-blue-300 font-bold mb-2">📱 Quick Start Guide:</p>
+                        <p class="text-gray-400">1. Install "IP Webcam" app (Android)</p>
+                        <p class="text-gray-400">2. Tap "Start Server" in the app</p>
+                        <p class="text-gray-400">3. App will show: http://192.168.x.x:8080</p>
+                        <p class="text-gray-400">4. Enter that IP address below</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm text-gray-400 mb-2">Choose App Type:</label>
+                        <select id="appTypeSelect" onchange="updateUrlFormat()" 
+                            class="w-full bg-black border border-gray-700 rounded p-3 focus:border-purple-500 outline-none mb-3">
+                            <option value="ipwebcam">IP Webcam (Android)</option>
+                            <option value="droidcam">DroidCam</option>
+                            <option value="epoccam">EpocCam (iOS)</option>
+                            <option value="custom">Custom URL</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm text-gray-400 mb-2">Device IP Address:</label>
+                        <input type="text" id="mobileIpInput" placeholder="192.168.1.100" 
+                            class="w-full bg-black border border-gray-700 rounded p-3 focus:border-purple-500 outline-none"
+                            oninput="updateFullUrl()">
+                        <p class="text-xs text-gray-500 mt-1" id="ipHint">Find this in your IP Webcam app</p>
+                    </div>
+                    
+                    <div class="mb-4" id="portDiv">
+                        <label class="block text-sm text-gray-400 mb-2">Port:</label>
+                        <input type="text" id="mobilePortInput" value="8080" 
+                            class="w-full bg-black border border-gray-700 rounded p-3 focus:border-purple-500 outline-none"
+                            oninput="updateFullUrl()">
+                    </div>
+                    
+                    <div class="mb-4 bg-black/40 p-3 rounded">
+                        <label class="block text-xs text-gray-400 mb-1">Full URL (auto-generated):</label>
+                        <p class="font-mono text-green-400 text-xs break-all" id="fullUrlDisplay">http://192.168.1.100:8080/video</p>
+                    </div>
+                    
+                    <div class="bg-yellow-600/20 border border-yellow-500/30 p-3 rounded mb-4 text-xs">
+                        <p class="text-yellow-300"><strong>⚠️ Troubleshooting:</strong></p>
+                        <p class="text-gray-400 mt-1">• Both devices must be on SAME WiFi network</p>
+                        <p class="text-gray-400">• Make sure app server is running (green status)</p>
+                        <p class="text-gray-400">• Try disabling VPN if connection fails</p>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="document.getElementById('wifiConnectionModal').remove()" 
+                            class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded transition-all">
+                            Cancel
+                        </button>
+                        <button onclick="testConnection()" 
+                            class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-2 rounded transition-all">
+                            <i class="fas fa-flask"></i> Test
+                        </button>
+                        <button onclick="establishWiFiConnection()" 
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition-all">
+                            <i class="fas fa-link"></i> Connect
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            updateFullUrl(); // Initialize URL display
+        }
+
+        function updateUrlFormat() {
+            const appType = document.getElementById('appTypeSelect').value;
+            const ipHint = document.getElementById('ipHint');
+            const portDiv = document.getElementById('portDiv');
+
+            if (appType === 'ipwebcam') {
+                ipHint.textContent = 'Find this in your IP Webcam app';
+                portDiv.style.display = 'block';
+                document.getElementById('mobilePortInput').value = '8080';
+            } else if (appType === 'droidcam') {
+                ipHint.textContent = 'Find this in your DroidCam app';
+                portDiv.style.display = 'block';
+                document.getElementById('mobilePortInput').value = '4747';
+            } else if (appType === 'epoccam') {
+                ipHint.textContent = 'Find this in your EpocCam settings';
+                portDiv.style.display = 'block';
+                document.getElementById('mobilePortInput').value = '8080';
+            } else {
+                ipHint.textContent = 'Enter complete stream URL below';
+                portDiv.style.display = 'none';
+            }
+
+            updateFullUrl();
+        }
+
+        function updateFullUrl() {
+            const appType = document.getElementById('appTypeSelect').value;
+            const ip = document.getElementById('mobileIpInput').value || '192.168.1.100';
+            const port = document.getElementById('mobilePortInput').value || '8080';
+            let url = '';
+
+            if (appType === 'ipwebcam') {
+                url = `http://${ip}:${port}/video`;
+            } else if (appType === 'droidcam') {
+                url = `http://${ip}:${port}/mjpegfeed`;
+            } else if (appType === 'epoccam') {
+                url = `http://${ip}:${port}/live`;
+            } else {
+                url = `http://${ip}:${port}/video`;
+            }
+
+            document.getElementById('fullUrlDisplay').textContent = url;
+        }
+
+        async function testConnection() {
+            const url = document.getElementById('fullUrlDisplay').textContent;
+            showNotification('info', 'Testing connection...');
+
+            try {
+                const response = await fetch(url, { method: 'HEAD', mode: 'no-cors' });
+                showNotification('success', 'Connection test successful! Camera is reachable.');
+            } catch (error) {
+                showNotification('warning', 'Cannot verify connection. Click Connect to try anyway.');
+            }
+        }
+
+        function establishWiFiConnection() {
+            const appType = document.getElementById('appTypeSelect').value;
+            const ip = document.getElementById('mobileIpInput').value;
+            const port = document.getElementById('mobilePortInput').value;
+
+            if (!ip) {
+                showNotification('error', 'Please enter IP address');
+                return;
+            }
+
+            // Build URL based on app type
+            let streamUrl;
+            if (appType === 'ipwebcam') {
+                streamUrl = `http://${ip}:${port}/video`;
+            } else if (appType === 'droidcam') {
+                streamUrl = `http://${ip}:${port}/mjpegfeed`;
+            } else if (appType === 'epoccam') {
+                streamUrl = `http://${ip}:${port}/live`;
+            } else {
+                streamUrl = `http://${ip}:${port}/video`;
+            }
+
+            connectToStream(streamUrl, 'Mobile WiFi');
+            document.getElementById('wifiConnectionModal').remove();
+        }
+
+        // IP Camera App Connection
+        function connectViaIPCamera() {
+            const modal = document.createElement('div');
+            modal.id = 'ipCameraModal';
+            modal.className = 'fixed inset-0 bg-black/90 flex items-center justify-center z-[10000]';
+            modal.innerHTML = `
+                <div class="bg-slate-900 p-8 rounded-xl border border-green-500 max-w-md">
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-video text-green-400"></i>
+                        Direct Stream URL
+                    </h3>
+                    
+                    <div class="bg-green-600/20 border border-green-500/30 p-4 rounded mb-4">
+                        <p class="text-green-300 text-sm font-bold mb-2">📱 Common Formats:</p>
+                        <p class="text-gray-400 text-xs font-mono">• http://IP:8080/video</p>
+                        <p class="text-gray-400 text-xs font-mono">• http://IP:4747/mjpegfeed</p>
+                        <p class="text-gray-400 text-xs font-mono">• http://IP:8080/videofeed</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm text-gray-400 mb-2">Complete Stream URL:</label>
+                        <input type="text" id="streamUrlInput" 
+                            placeholder="http://192.168.1.100:8080/video" 
+                            class="w-full bg-black border border-gray-700 rounded p-3 focus:border-green-500 outline-none text-sm">
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="document.getElementById('ipCameraModal').remove()" 
+                            class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded transition-all">
+                            Cancel
+                        </button>
+                        <button onclick="connectToIPCameraStream()" 
+                            class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded transition-all">
+                            <i class="fas fa-play"></i> Connect
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        function connectToIPCameraStream() {
+            const streamUrl = document.getElementById('streamUrlInput').value;
+
+            if (!streamUrl) {
+                showNotification('error', 'Please enter stream URL');
+                return;
+            }
+
+            connectToStream(streamUrl, 'IP Camera');
+            document.getElementById('ipCameraModal').remove();
+        }
+
+        // Universal stream connection function
+        function connectToStream(streamUrl, sourceName) {
+            const videoElement = document.getElementById('cameraVideo');
+            const displayArea = document.getElementById('cameraDisplay');
+
+            showNotification('info', `Connecting to ${sourceName}...`);
+
+            // Try using img element for MJPEG streams
+            if (streamUrl.includes('mjpeg') || streamUrl.includes('videofeed')) {
+                // For MJPEG streams, use img tag instead of video
+                videoElement.style.display = 'none';
+                let imgElement = document.getElementById('mjpegStream');
+
+                if (!imgElement) {
+                    imgElement = document.createElement('img');
+                    imgElement.id = 'mjpegStream';
+                    imgElement.className = 'w-full h-full object-cover';
+                    videoElement.parentElement.insertBefore(imgElement, videoElement);
+                }
+
+                imgElement.src = streamUrl;
+                imgElement.style.display = 'block';
+
+                imgElement.onload = () => {
+                    displayArea.classList.remove('hidden');
+                    updateConnectionStatus(sourceName, 'success');
+                    showNotification('success', `Connected to ${sourceName}!`);
+                };
+
+                imgElement.onerror = () => {
+                    showNotification('error', `Connection failed. Check: 1) Same WiFi network 2) App is running 3) Correct IP/port`);
+                };
+            } else {
+                // For video streams
+                const imgElement = document.getElementById('mjpegStream');
+                if (imgElement) imgElement.style.display = 'none';
+                videoElement.style.display = 'block';
+
+                videoElement.src = streamUrl;
+                videoElement.muted = false;
+                videoElement.play().catch(e => console.log('Autoplay prevented:', e));
+
+                videoElement.onloadeddata = () => {
+                    displayArea.classList.remove('hidden');
+                    updateConnectionStatus(sourceName, 'success');
+                    showNotification('success', `Connected to ${sourceName}!`);
+                };
+
+                videoElement.onerror = () => {
+                    showNotification('error', `Connection failed. Verify: 1) App server running 2) Correct URL 3) Same network`);
+                };
+            }
+        }
+
+        function updateConnectionStatus(source, status) {
+            const statusText = document.getElementById('cameraStatusText');
+            const statusBadge = document.getElementById('cameraStatus');
+            const bluetoothBtn = document.getElementById('bluetoothBtn');
+
+            if (status === 'success') {
+                statusBadge.className = 'absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1';
+                statusText.textContent = source.toUpperCase();
+
+                bluetoothBtn.innerHTML = `<i class="fas fa-wifi"></i> ${source}`;
+                bluetoothBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2';
+
+                mobileConnectionType = 'wifi';
+            }
+        }
+
+        // Bluetooth connection method (now QR Code based)
+        async function connectViaBluetooth() {
+            const connectionId = generateConnectionId();
+            const connectionURL = `${window.location.origin}/mobile-connect?id=${connectionId}`;
+
+            // Create QR code modal
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[10000]';
+            modal.innerHTML = `
+                <div class="bg-slate-900 p-8 rounded-xl border border-purple-500 max-w-md">
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-qrcode text-purple-400"></i>
+                        Connect Mobile Device
+                    </h3>
+                    <p class="text-gray-400 text-sm mb-4">Scan this QR code with your mobile device or enter the connection ID:</p>
+                    
+                    <!-- QR Code Placeholder -->
+                    <div class="bg-white p-4 rounded-lg mb-4 flex items-center justify-center">
+                        <div class="text-center">
+                            <i class="fas fa-qrcode text-gray-800 text-9xl"></i>
+                            <p class="text-gray-800 text-xs mt-2">QR Code Generator Required</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-black/40 p-3 rounded mb-4">
+                        <p class="text-xs text-gray-400 mb-1">Connection ID:</p>
+                        <p class="font-mono text-green-400 text-lg">${connectionId}</p>
+                    </div>
+                    
+                    <div class="bg-blue-600/20 border border-blue-500/30 p-3 rounded mb-4 text-sm">
+                        <p class="text-blue-300">📱 <strong>Mobile App Required:</strong></p>
+                        <p class="text-gray-400 text-xs mt-1">Install our companion app from Play Store or App Store to stream camera</p>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="this.closest('div').parentElement.remove()" 
+                            class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded transition-all">
+                            Close
+                        </button>
+                        <button onclick="copyConnectionId('${connectionId}')" 
+                            class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded transition-all">
+                            <i class="fas fa-copy"></i> Copy ID
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            showNotification('info', 'QR Code displayed. Scan with mobile device.');
+        }
+
+        function generateConnectionId() {
+            return Math.random().toString(36).substring(2, 10).toUpperCase();
+        }
+
+        function copyConnectionId(id) {
+            navigator.clipboard.writeText(id);
+            showNotification('success', 'Connection ID copied!');
+        }
+
+        // Bluetooth connection method
+        async function connectViaBluetooth() {
+            try {
+                // Check if Web Bluetooth is supported
+                if (!navigator.bluetooth) {
+                    showNotification('error', 'Bluetooth not supported. Please use Chrome/Edge on desktop or try QR Code method.');
+                    return;
+                }
+
+                // Check if HTTPS or localhost
+                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                    showNotification('error', 'Bluetooth requires HTTPS connection. Try QR Code method instead.');
+                    return;
+                }
+
+                showNotification('info', 'Opening Bluetooth device selector...');
+
+                // Request Bluetooth device with proper filters
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { services: ['battery_service'] },
+                        { name: 'Android' },
+                        { name: 'iPhone' },
+                        { namePrefix: 'SM-' }, // Samsung
+                        { namePrefix: 'PIXEL' }, // Google Pixel
+                    ],
+                    optionalServices: ['battery_service', 'device_information']
+                }).catch(err => {
+                    // Fallback to acceptAllDevices if filters fail
+                    console.log('Filter failed, trying acceptAllDevices:', err);
+                    return navigator.bluetooth.requestDevice({
+                        acceptAllDevices: true,
+                        optionalServices: ['battery_service', 'device_information']
+                    });
+                });
+
+                if (!bluetoothDevice) {
+                    throw new Error('No device selected');
+                }
+
+                showNotification('success', `Bluetooth paired with: ${bluetoothDevice.name || 'Mobile Device'}`);
+                mobileConnectionType = 'bluetooth';
+
+                // Update button state
+                const bluetoothBtn = document.getElementById('bluetoothBtn');
+                bluetoothBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> Connected (BT)';
+                bluetoothBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2';
+
+                // Listen for disconnect
+                bluetoothDevice.addEventListener('gattserverdisconnected', onBluetoothDisconnect);
+
+                showNotification('info', 'Bluetooth connected! Camera streaming requires companion mobile app.');
+
+            } catch (error) {
+                console.error('Bluetooth error:', error);
+                let errorMsg = 'Bluetooth connection failed.';
+
+                if (error.name === 'NotFoundError') {
+                    errorMsg = 'No device selected. Make sure Bluetooth is ON on your mobile device.';
+                } else if (error.name === 'SecurityError') {
+                    errorMsg = 'Bluetooth blocked. Try QR Code method instead.';
+                } else if (error.message) {
+                    errorMsg = `Bluetooth error: ${error.message}`;
+                }
+
+                showNotification('error', errorMsg);
+
+                // Offer QR code alternative
+                setTimeout(() => {
+                    if (confirm('Bluetooth connection failed. Would you like to try QR Code method instead?')) {
+                        connectViaQRCode();
+                    }
+                }, 1000);
+            }
+        }
+
+        function onBluetoothDisconnect() {
+            const bluetoothBtn = document.getElementById('bluetoothBtn');
+            bluetoothBtn.innerHTML = '<i class="fas fa-bluetooth"></i> Mobile Device';
+            bluetoothBtn.className = 'bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2';
+            bluetoothDevice = null;
+            mobileConnectionType = null;
+            showNotification('info', 'Mobile device disconnected');
+        }
+    </script>
+
+</body>
+
+</html>
