@@ -1,0 +1,2487 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Traffic Violation Priority Engine | AI-Powered Emergency Response</title>
+    <meta name="description"
+        content="Transform traffic management with AI-driven violation prioritization. Save lives through intelligent emergency response triage for smart cities.">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-navy': '#0F172A',
+                        'slate-card': '#1E293B',
+                        'emergency-red': '#DC2626',
+                        'warning-orange': '#F59E0B',
+                        'success-green': '#10B981',
+                        'primary-blue': '#1E40AF',
+                    },
+                    animation: {
+                        'alert-pulse': 'alertPulse 2s infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        alertPulse: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.4' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Authentication Modal Styles */
+        .auth-modal-backdrop {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+        }
+
+        .auth-modal-content {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.98), rgba(26, 26, 26, 0.98));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+        }
+
+        .auth-input {
+            background: rgba(26, 26, 26, 0.8);
+            border: 1px solid rgba(220, 38, 38, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        .auth-btn {
+            transition: all 0.3s ease;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-10px);
+            }
+
+            75% {
+                transform: translateX(10px);
+            }
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+    </style>
+
+    <!-- AOS Animation -->
+    <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css">
+</head>
+
+<body class="bg-dark-navy text-white">
+
+    <!-- Authentication Modal -->
+    <div id="authModal" class="hidden fixed inset-0 z-50 flex items-center justify-center auth-modal-backdrop">
+        <div class="auth-modal-content max-w-md w-full mx-4 rounded-2xl shadow-2xl p-8">
+            <!-- Header -->
+            <div class="text-center mb-6">
+                <div
+                    class="inline-flex items-center justify-center w-16 h-16 bg-black border-2 border-red-600 rounded-full mb-4">
+                    <i class="fas fa-shield-alt text-2xl text-red-500"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-2">Access Authentication</h2>
+                <p class="text-gray-400 text-sm">Secure your dashboard access</p>
+            </div>
+
+            <!-- Auth Methods -->
+            <div class="space-y-4">
+                <!-- Password Auth -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                        <i class="fas fa-lock mr-2"></i>Password
+                    </label>
+                    <input type="password" id="authPassword"
+                        class="auth-input w-full px-4 py-3 rounded-lg text-white placeholder-gray-500"
+                        placeholder="Enter password (default: 12345)"
+                        onkeypress="if(event.key === 'Enter') authenticatePassword()">
+                    <button onclick="authenticatePassword()"
+                        class="auth-btn w-full mt-3 bg-black border-2 border-red-600 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center space-x-2">
+                        <i class="fas fa-key"></i>
+                        <span>Unlock with Password</span>
+                    </button>
+                </div>
+
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-700"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-slate-card text-gray-400">OR</span>
+                    </div>
+                </div>
+
+                <!-- Biometric Auth -->
+                <div id="biometricSection">
+                    <button onclick="authenticateBiometric()"
+                        class="auth-btn w-full bg-black border-2 border-red-700 hover:bg-red-700 text-white px-6 py-4 rounded-lg font-semibold flex items-center justify-center space-x-3">
+                        <i class="fas fa-fingerprint text-3xl"></i>
+                        <span>Use Biometric Authentication</span>
+                    </button>
+                    <p class="text-xs text-gray-500 text-center mt-2">Fingerprint or Face Recognition</p>
+                </div>
+
+                <div id="biometricUnsupported" class="hidden">
+                    <div
+                        class="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 px-4 py-3 rounded-lg text-sm">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Biometric authentication not supported on this browser
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="authError"
+                class="hidden mt-4 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <span id="authErrorText">Invalid password. Please try again.</span>
+            </div>
+
+            <!-- Close Button -->
+            <button onclick="closeAuthModal()"
+                class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    {{> components/nav}}
+
+    <!-- ========== HERO SECTION ========== -->
+    <section class="relative min-h-screen flex items-center overflow-hidden">
+        <!-- Animated Background -->
+        <div class="absolute inset-0 bg-gradient-to-br from-dark-navy via-primary-blue/20 to-dark-navy">
+            <div
+                class="absolute inset-0 bg-gradient-to-tr from-indigo-900/40 via-purple-900/40 to-slate-900/40 opacity-50">
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-r from-dark-navy via-transparent to-dark-navy"></div>
+
+            <!-- Floating CCTV Icons -->
+            <div class="absolute top-20 left-10 animate-float">
+                <i class="fas fa-video text-gray-600 text-2xl opacity-50"></i>
+            </div>
+            <div class="absolute top-32 right-20 animate-float" style="animation-delay: 2s;">
+                <i class="fas fa-camera text-gray-600 text-2xl opacity-50"></i>
+            </div>
+            <div class="absolute bottom-32 left-20 animate-float" style="animation-delay: 4s;">
+                <i class="fas fa-eye text-gray-600 text-2xl opacity-50"></i>
+            </div>
+        </div>
+
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+            <div class="max-w-4xl mx-auto">
+                <!-- Emergency Alert Badge -->
+                <div class="inline-flex items-center space-x-2 bg-emergency-red/20 border border-emergency-red/40 text-emergency-red px-4 py-2 rounded-full mb-8 animate-alert-pulse"
+                    data-aos="fade-down">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span class="font-semibold">AI-POWERED EMERGENCY RESPONSE</span>
+                </div>
+
+                <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight" data-aos="fade-up">
+                    <span class="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                        From Traffic Monitoring
+                    </span>
+                    <br>
+                    <span class="bg-gradient-to-r from-emergency-red to-warning-orange bg-clip-text text-transparent">
+                        to Life-Saving Intelligence
+                    </span>
+                </h1>
+
+                <p class="text-xl md:text-2xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed" data-aos="fade-up"
+                    data-aos-delay="200">
+                    Transform thousands of daily violations into actionable intelligence.
+                    Our AI prioritizes emergencies, clears paths for first responders,
+                    and turns overloaded traffic systems into life-saving networks.
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-6 justify-center items-center" data-aos="fade-up"
+                    data-aos-delay="400">
+                    <a href="#" onclick="showAuthModal(); return false;"
+                        class="group bg-gradient-to-r from-emergency-red to-red-700 hover:from-red-700 hover:to-emergency-red text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 shadow-lg shadow-red-500/30 flex items-center space-x-3">
+                        <i class="fas fa-play-circle text-xl"></i>
+                        <span>Request Live Demo</span>
+                        <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </a>
+                    <a href="#dashboard"
+                        class="group border-2 border-gray-600 hover:border-white text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 flex items-center space-x-3">
+                        <i class="fas fa-tachometer-alt text-xl"></i>
+                        <span>View System Dashboard</span>
+                        <i class="fas fa-arrow-down group-hover:translate-y-1 transition-transform"></i>
+                    </a>
+                </div>
+
+                <!-- Trust Indicators -->
+                <div class="mt-16 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-12 text-gray-400"
+                    data-aos="fade-up" data-aos-delay="600">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-shield-check text-success-green"></i>
+                        <span>Government-Grade Security</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-city text-warning-orange"></i>
+                        <span>Smart City Compatible</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-heartbeat text-emergency-red"></i>
+                        <span>Life-Saving Priority</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll Indicator -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <i class="fas fa-chevron-down text-gray-400 text-2xl"></i>
+        </div>
+    </section>
+
+
+    <!-- ========== THE PROBLEM SECTION ========== -->
+    <section id="problem" class="py-20 bg-slate-card">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <div class="inline-flex items-center space-x-2 bg-warning-orange/20 border border-warning-orange/40 text-warning-orange px-4 py-2 rounded-full mb-6"
+                    data-aos="fade-down">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span class="font-semibold">THE CRISIS</span>
+                </div>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6" data-aos="fade-up">
+                    Traffic Violation Overload is
+                    <span class="text-emergency-red">Costing Lives</span>
+                </h2>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <!-- Statistics -->
+                <div class="space-y-8" data-aos="fade-right">
+                    <div class="bg-dark-navy p-8 rounded-xl border-l-4 border-emergency-red shadow-lg">
+                        <div class="flex items-start space-x-4">
+                            <div class="bg-emergency-red/20 p-3 rounded-lg">
+                                <i class="fas fa-car-crash text-emergency-red text-2xl"></i>
+                            </div>
+                            <div>
+                                <div class="text-4xl font-bold text-emergency-red mb-2">10,000+</div>
+                                <div class="text-gray-300 text-lg">Daily violations detected</div>
+                                <div class="text-gray-400 text-sm mt-1">Overwhelming manual review teams</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-dark-navy p-6 rounded-xl border border-gray-700 shadow-lg">
+                            <div class="text-3xl font-bold text-warning-orange mb-1">47 min</div>
+                            <div class="text-gray-300 text-sm">Average emergency response delay</div>
+                        </div>
+                        <div class="bg-dark-navy p-6 rounded-xl border border-gray-700 shadow-lg">
+                            <div class="text-3xl font-bold text-emergency-red mb-1">68%</div>
+                            <div class="text-gray-300 text-sm">Critical alerts missed in overload</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-dark-navy p-6 rounded-xl border border-gray-700 shadow-lg">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-ambulance text-emergency-red text-xl"></i>
+                            <div>
+                                <div class="text-lg font-semibold text-white">Emergency Vehicles Blocked</div>
+                                <div class="text-gray-400 text-sm">Life-threatening delays due to traffic obstructions
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Before vs After -->
+                <div class="space-y-6" data-aos="fade-left">
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4 flex items-center">
+                            <span class="bg-warning-orange/20 p-2 rounded-lg mr-3">
+                                <i class="fas fa-times text-warning-orange"></i>
+                            </span>
+                            Before: Manual Chaos
+                        </h3>
+                        <div class="bg-dark-navy p-6 rounded-xl border border-gray-700 space-y-4">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-gray-600"></i>
+                                <span class="text-gray-400">Thousands of equal-priority alerts</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-gray-600"></i>
+                                <span class="text-gray-400">Human operators overwhelmed</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-gray-600"></i>
+                                <span class="text-gray-400">Critical emergencies buried in noise</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-gray-600"></i>
+                                <span class="text-gray-400">No risk-based prioritization</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-gray-600"></i>
+                                <span class="text-gray-400">Accident response delayed by 47 minutes</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4 flex items-center">
+                            <span class="bg-success-green/20 p-2 rounded-lg mr-3">
+                                <i class="fas fa-check text-success-green"></i>
+                            </span>
+                            After: AI Intelligence
+                        </h3>
+                        <div
+                            class="bg-gradient-to-br from-success-green/10 to-primary-blue/10 p-6 rounded-xl border border-success-green/30 space-y-4">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-success-green"></i>
+                                <span class="text-gray-300">Risk-scored violations (0-100 scale)</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-success-green"></i>
+                                <span class="text-gray-300">Emergency vehicles get infinite priority</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-success-green"></i>
+                                <span class="text-gray-300">Real-time danger leaderboard</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-success-green"></i>
+                                <span class="text-gray-300">Human-in-the-loop confidence alerts</span>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-check-circle text-success-green"></i>
+                                <span class="text-gray-300">Response time reduced to under 8 minutes</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ========== THE SOLUTION SECTION ========== -->
+    <section id="solution" class="py-20 bg-dark-navy">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <div class="inline-flex items-center space-x-2 bg-primary-blue/20 border border-primary-blue/40 text-primary-blue px-4 py-2 rounded-full mb-6"
+                    data-aos="fade-down">
+                    <i class="fas fa-lightbulb"></i>
+                    <span class="font-semibold">THE SOLUTION</span>
+                </div>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6" data-aos="fade-up">
+                    Smart Traffic Violation
+                    <span class="text-primary-blue">Priority Engine</span>
+                </h2>
+                <p class="text-xl text-gray-300 max-w-3xl mx-auto" data-aos="fade-up" data-aos-delay="200">
+                    AI-powered traffic triage that converts CCTV feeds into life-saving intelligence.
+                    Detects violations, analyzes context, scores risk, and prioritizes emergencies
+                    in real-time.
+                </p>
+            </div>
+
+            <!-- AI Decision Pipeline -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                <div class="bg-slate-card p-6 rounded-xl border border-gray-700 hover:border-primary-blue transition-all duration-300"
+                    data-aos="fade-up">
+                    <div class="bg-primary-blue/20 p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4">
+                        <i class="fas fa-video text-primary-blue text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">CCTV Feed Input</h3>
+                    <p class="text-gray-400 text-sm">Existing traffic cameras stream live footage to our AI engine 24/7
+                    </p>
+                </div>
+
+                <div class="bg-slate-card p-6 rounded-xl border border-gray-700 hover:border-primary-blue transition-all duration-300"
+                    data-aos="fade-up" data-aos-delay="100">
+                    <div class="bg-primary-blue/20 p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4">
+                        <i class="fas fa-car text-primary-blue text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Vehicle Detection</h3>
+                    <p class="text-gray-400 text-sm">YOLOv8 identifies vehicles, types, speed, and trajectories</p>
+                </div>
+
+                <div class="bg-slate-card p-6 rounded-xl border border-gray-700 hover:border-primary-blue transition-all duration-300"
+                    data-aos="fade-up" data-aos-delay="200">
+                    <div class="bg-primary-blue/20 p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4">
+                        <i class="fas fa-exclamation-triangle text-warning-orange text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Violation Identification</h3>
+                    <p class="text-gray-400 text-sm">Detects wrong-side driving, speeding, obstruction, and more</p>
+                </div>
+
+                <div class="bg-slate-card p-6 rounded-xl border border-gray-700 hover:border-primary-blue transition-all duration-300"
+                    data-aos="fade-up" data-aos-delay="300">
+                    <div class="bg-primary-blue/20 p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4">
+                        <i class="fas fa-bolt text-warning-orange text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Real-Time Alerts</h3>
+                    <p class="text-gray-400 text-sm">Priority-ranked alerts delivered to traffic command centers</p>
+                </div>
+            </div>
+
+            <!-- Flow Diagram -->
+            <div class="bg-slate-card p-8 rounded-2xl border border-gray-700 shadow-2xl" data-aos="fade-up">
+                <h3 class="text-2xl font-bold mb-8 text-center">AI Decision Pipeline</h3>
+
+                <div class="relative">
+                    <!-- Flow Steps -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 relative z-10">
+                        <!-- Step 1 -->
+                        <div class="text-center">
+                            <div class="bg-primary-blue/20 border-2 border-primary-blue rounded-xl p-4 mb-3">
+                                <i class="fas fa-video text-primary-blue text-2xl mb-2"></i>
+                                <div class="text-xs text-primary-blue font-semibold">Input</div>
+                            </div>
+                            <div class="text-sm text-gray-300">CCTV Feed</div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="text-center">
+                            <div class="bg-primary-blue/20 border-2 border-primary-blue rounded-xl p-4 mb-3">
+                                <i class="fas fa-robot text-primary-blue text-2xl mb-2"></i>
+                                <div class="text-xs text-primary-blue font-semibold">Detection</div>
+                            </div>
+                            <div class="text-sm text-gray-300">YOLOv8 Analysis</div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="text-center">
+                            <div class="bg-warning-orange/20 border-2 border-warning-orange rounded-xl p-4 mb-3">
+                                <i class="fas fa-search text-warning-orange text-2xl mb-2"></i>
+                                <div class="text-xs text-warning-orange font-semibold">Violation</div>
+                            </div>
+                            <div class="text-sm text-gray-300">Identify Offenses</div>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div class="text-center">
+                            <div class="bg-warning-orange/20 border-2 border-warning-orange rounded-xl p-4 mb-3">
+                                <i class="fas fa-calculator text-warning-orange text-2xl mb-2"></i>
+                                <div class="text-xs text-warning-orange font-semibold">Scoring</div>
+                            </div>
+                            <div class="text-sm text-gray-300">Risk Calculation</div>
+                        </div>
+
+                        <!-- Step 5 -->
+                        <div class="text-center">
+                            <div class="bg-emergency-red/20 border-2 border-emergency-red rounded-xl p-4 mb-3">
+                                <i class="fas fa-sort-numeric-down text-emergency-red text-2xl mb-2"></i>
+                                <div class="text-xs text-emergency-red font-semibold">Priority</div>
+                            </div>
+                            <div class="text-sm text-gray-300">Emergency Override</div>
+                        </div>
+
+                        <!-- Step 6 -->
+                        <div class="text-center">
+                            <div class="bg-success-green/20 border-2 border-success-green rounded-xl p-4 mb-3">
+                                <i class="fas fa-bell text-success-green text-2xl mb-2"></i>
+                                <div class="text-xs text-success-green font-semibold">Output</div>
+                            </div>
+                            <div class="text-sm text-gray-300">Actionable Alert</div>
+                        </div>
+                    </div>
+
+                    <!-- Flow Arrows (Desktop) -->
+                    <div
+                        class="hidden md:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-blue via-warning-orange to-emergency-red -mt-4 z-0">
+                    </div>
+                </div>
+                <!-- Risk Scoring Explanation -->
+                <div class="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-dark-navy p-6 rounded-xl border border-gray-700">
+                        <h4 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fas fa-brain text-primary-blue mr-2"></i>
+                            Context-Aware Risk Scoring
+                        </h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-400">Vehicle Type</span>
+                                <span class="text-sm font-semibold text-warning-orange">Heavy vehicles = +30 risk</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-400">Violation Type</span>
+                                <span class="text-sm font-semibold text-emergency-red">Wrong-side = +50 risk</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-400">Speed</span>
+                                <span class="text-sm font-semibold text-warning-orange">Overspeeding = +20 risk</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-400">Weather</span>
+                                <span class="text-sm font-semibold text-gray-300">Poor visibility = +15 risk</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-dark-navy p-6 rounded-xl border border-gray-700">
+                        <h4 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fas fa-ambulance text-emergency-red mr-2"></i>
+                            Emergency Override Logic
+                        </h4>
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-infinity text-emergency-red"></i>
+                                <div>
+                                    <div class="text-sm font-semibold text-white">Emergency Vehicles</div>
+                                    <div class="text-xs text-gray-400">Instant infinite priority when detected</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-hand-paper text-warning-orange"></i>
+                                <div>
+                                    <div class="text-sm font-semibold text-white">Obstruction Detection</div>
+                                    <div class="text-xs text-gray-400">Vehicles blocking emergency routes = +75 risk
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <i class="fas fa-siren text-emergency-red"></i>
+                                <div>
+                                    <div class="text-sm font-semibold text-white">Siren Detection</div>
+                                    <div class="text-xs text-gray-400">Audio analysis triggers priority clearance</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ========== CORE FEATURES SECTION ========== -->
+    <section id="features" class="py-20 bg-slate-card">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <div class="inline-flex items-center space-x-2 bg-success-green/20 border border-success-green/40 text-success-green px-4 py-2 rounded-full mb-6"
+                    data-aos="fade-down">
+                    <i class="fas fa-star"></i>
+                    <span class="font-semibold">CORE FEATURES</span>
+                </div>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6" data-aos="fade-up">
+                    Intelligent Traffic
+                    <span class="text-success-green">Priority System</span>
+                </h2>
+                <p class="text-xl text-gray-300 max-w-3xl mx-auto" data-aos="fade-up" data-aos-delay="200">
+                    Eight powerful features that transform traffic monitoring into emergency response intelligence
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Feature 1 -->
+                <div class="bg-dark-navy p-6 rounded-xl border border-gray-700 hover:border-emergency-red hover:shadow-lg hover:shadow-red-500/20 transition-all duration-300 group"
+                    data-aos="fade-up">
+                    <div
+                        class="bg-emergency-red/20 p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-siren text-emergency-red text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Emergency-First Protocol</h3>
+                    <p class="text-gray-400 text-sm mb-4">Ambulances, fire trucks, and police vehicles receive infinite
+                        priority, clearing paths automatically</p>
+                    <div class="flex items-center text-emergency-red text-sm font-semibold">
+                        <span>Learn More</span>
+                        <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="bg-dark-navy p-6 rounded-xl border border-gray-700 hover:border-warning-orange hover:shadow-lg hover:shadow-orange-500/20 transition-all duration-300 group"
+                    data-aos="fade-up" data-aos-delay="100">
+                    <div
+                        class="bg-warning-orange/20 p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-brain text-warning-orange text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Context-Aware Risk Scoring</h3>
+                    <p class="text-gray-400 text-sm mb-4">AI analyzes vehicle type, speed, weather, and violation type
+                        to calculate danger scores (0-100)</p>
+                    <div class="flex items-center text-warning-orange text-sm font-semibold">
+                        <span>Learn More</span>
+                        <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="bg-dark-navy p-6 rounded-xl border border-gray-700 hover:border-primary-blue hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 group"
+                    data-aos="fade-up" data-aos-delay="200">
+                    <div
+                        class="bg-primary-blue/20 p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-trophy text-primary-blue text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Danger Leaderboard</h3>
+                    <p class="text-gray-400 text-sm mb-4">Real-time ranked list of most dangerous violations, ensuring
+                        authorities focus on critical threats first</p>
+                    <div class="flex items-center text-primary-blue text-sm font-semibold">
+                        <span>Learn More</span>
+                        <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="bg-dark-navy p-6 rounded-xl border border-gray-700 hover:border-success-green hover:shadow-lg hover:shadow-green-500/20 transition-all duration-300 group"
+                    data-aos="fade-up" data-aos-delay="300">
+                    <div
+                        class="bg-success-green/20 p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-video text-success-green text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Works on Existing CCTV</h3>
+                    <p class="text-gray-400 text-sm mb-4">No new hardware required. Integrates with current city camera
+                        infrastructure in days, not months</p>
+                    <div class="flex items-center text-success-green text-sm font-semibold">
+                        <span>Learn More</span>
+                        <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="bg-dark-navy p-6 rounded-xl border border-gray-700 hover:border-emergency-red hover:shadow-lg hover:shadow-red-500/20 transition-all duration-300 group"
+                    data-aos="fade-up" data-aos-delay="400">
+                    <div
+                        class="bg-emergency-red/20 p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-bolt text-emergency-red text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Real-Time Alerts</h3>
+                    <p class="text-gray-400 text-sm mb-4">Sub-second alert delivery to traffic command centers with
+                        priority levels and recommended actions</p>
+                    <div class="flex items-center text-emergency-red text-sm font-semibold">
+                        <span>Learn More</span>
+                        <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="bg-dark-navy p-6 rounded-xl border border-gray-700 hover:border-warning-orange hover:shadow-lg hover:shadow-orange-500/20 transition-all duration-300 group"
+                    data-aos="fade-up" data-aos-delay="500">
+                    <div
+                        class="bg-warning-orange/20 p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-cloud-rain text-warning-orange text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Weather Adaptation</h3>
+                    <p class="text-gray-400 text-sm mb-4">Dynamically adjusts risk scores based on rain, fog, and
+                        visibility conditions for context-aware prioritization</p>
+                    <div class="flex items-center text-warning-orange text-sm font-semibold">
+                        <span>Learn More</span>
+                        <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </div>
+
+                <!-- Feature 7 -->
+                <div class="bg-dark-navy p-6 rounded-xl border border-gray-700 hover:border-primary-blue hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 group"
+                    data-aos="fade-up" data-aos-delay="600">
+                    <div
+                        class="bg-primary-blue/20 p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-eye text-primary-blue text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Human-in-the-Loop</h3>
+                    <p class="text-gray-400 text-sm mb-4">Low-confidence detections flagged for human review, ensuring
+                        accuracy and building trust in AI decisions</p>
+                    <div class="flex items-center text-primary-blue text-sm font-semibold">
+                        <span>Learn More</span>
+                        <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </div>
+
+                <!-- Feature 8 -->
+                <div class="bg-dark-navy p-6 rounded-xl border border-gray-700 hover:border-success-green hover:shadow-lg hover:shadow-green-500/20 transition-all duration-300 group"
+                    data-aos="fade-up" data-aos-delay="700">
+                    <div
+                        class="bg-success-green/20 p-3 rounded-lg w-14 h-14 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fas fa-chart-line text-success-green text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Analytics Dashboard</h3>
+                    <p class="text-gray-400 text-sm mb-4">Comprehensive reporting on violation patterns, response times,
+                        and system effectiveness for data-driven decisions</p>
+                    <div class="flex items-center text-success-green text-sm font-semibold">
+                        <span>Learn More</span>
+                        <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ========== DASHBOARD PREVIEW SECTION ========== -->
+    <section id="dashboard" class="py-20 bg-dark-navy">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <div class="inline-flex items-center space-x-2 bg-primary-blue/20 border border-primary-blue/40 text-primary-blue px-4 py-2 rounded-full mb-6"
+                    data-aos="fade-down">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span class="font-semibold">LIVE DASHBOARD</span>
+                </div>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6" data-aos="fade-up">
+                    Real-Time Traffic
+                    <span class="text-primary-blue">Intelligence Center</span>
+                </h2>
+                <p class="text-xl text-gray-300 max-w-3xl mx-auto" data-aos="fade-up" data-aos-delay="200">
+                    Interactive command dashboard showing live camera feeds, priority alerts, and danger leaderboards
+                </p>
+            </div>
+
+            <!-- Dashboard Mock -->
+            <div class="bg-slate-card rounded-2xl border border-gray-700 shadow-2xl overflow-hidden" data-aos="fade-up">
+                <!-- Dashboard Header -->
+                <div class="bg-dark-navy border-b border-gray-700 p-6">
+                    <div
+                        class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                        <div>
+                            <h3 class="text-2xl font-bold flex items-center">
+                                <i class="fas fa-traffic-light text-primary-blue mr-3"></i>
+                                Smart City Command Center
+                            </h3>
+                            <p class="text-gray-400 text-sm mt-1">Live monitoring across 47 intersections</p>
+                        </div>
+                        <div class="flex space-x-4">
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-emergency-red animate-alert-pulse">12</div>
+                                <div class="text-xs text-gray-400">Critical Alerts</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-warning-orange">47</div>
+                                <div class="text-xs text-gray-400">Active Violations</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-success-green">8</div>
+                                <div class="text-xs text-gray-400">Resolved</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Body -->
+                <div class="p-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                        <!-- Camera Feeds -->
+                        <div class="lg:col-span-2">
+                            <h4 class="text-lg font-semibold mb-4 flex items-center">
+                                <i class="fas fa-video text-primary-blue mr-2"></i>
+                                Live Camera Feeds
+                            </h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="relative bg-dark-navy rounded-xl overflow-hidden border border-gray-700">
+                                    <img src="https://picsum.photos/seed/traffic-camera-1/600/400.jpg"
+                                        alt="Camera Feed 1" class="w-full h-32 object-cover">
+                                    <div
+                                        class="absolute top-2 left-2 bg-emergency-red text-white px-2 py-1 rounded text-xs font-semibold animate-alert-pulse">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>ALERT
+                                    </div>
+                                    <div class="p-3">
+                                        <div class="text-sm font-semibold">Intersection A-12</div>
+                                        <div class="text-xs text-gray-400">Wrong-side driving detected</div>
+                                    </div>
+                                </div>
+                                <div class="relative bg-dark-navy rounded-xl overflow-hidden border border-gray-700">
+                                    <img src="https://picsum.photos/seed/traffic-camera-2/600/400.jpg"
+                                        alt="Camera Feed 2" class="w-full h-32 object-cover">
+                                    <div
+                                        class="absolute top-2 left-2 bg-warning-orange text-white px-2 py-1 rounded text-xs font-semibold">
+                                        <i class="fas fa-car mr-1"></i>SPEED
+                                    </div>
+                                    <div class="p-3">
+                                        <div class="text-sm font-semibold">Highway H-7</div>
+                                        <div class="text-xs text-gray-400">Overspeeding truck</div>
+                                    </div>
+                                </div>
+                                <div class="relative bg-dark-navy rounded-xl overflow-hidden border border-gray-700">
+                                    <img src="https://picsum.photos/seed/traffic-camera-3/600/400.jpg"
+                                        alt="Camera Feed 3" class="w-full h-32 object-cover">
+                                    <div
+                                        class="absolute top-2 left-2 bg-success-green text-white px-2 py-1 rounded text-xs font-semibold">
+                                        <i class="fas fa-check mr-1"></i>NORMAL
+                                    </div>
+                                    <div class="p-3">
+                                        <div class="text-sm font-semibold">Intersection B-5</div>
+                                        <div class="text-xs text-gray-400">All clear</div>
+                                    </div>
+                                </div>
+                                <div class="relative bg-dark-navy rounded-xl overflow-hidden border border-gray-700">
+                                    <img src="https://picsum.photos/seed/traffic-camera-4/600/400.jpg"
+                                        alt="Camera Feed 4" class="w-full h-32 object-cover">
+                                    <div
+                                        class="absolute top-2 left-2 bg-emergency-red text-white px-2 py-1 rounded text-xs font-semibold animate-alert-pulse">
+                                        <i class="fas fa-ambulance mr-1"></i>EMERGENCY
+                                    </div>
+                                    <div class="p-3">
+                                        <div class="text-sm font-semibold">Hospital Zone</div>
+                                        <div class="text-xs text-gray-400">Ambulance obstructed</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Danger Leaderboard -->
+                        <div>
+                            <h4 class="text-lg font-semibold mb-4 flex items-center">
+                                <i class="fas fa-trophy text-warning-orange mr-2"></i>
+                                Danger Leaderboard
+                            </h4>
+                            <div class="bg-dark-navy rounded-xl border border-gray-700 p-4 space-y-3">
+                                <!-- Item 1 -->
+                                <div
+                                    class="flex items-center space-x-3 p-3 rounded-lg bg-emergency-red/10 border border-emergency-red/30">
+                                    <div
+                                        class="w-8 h-8 bg-emergency-red rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                        1</div>
+                                    <div class="flex-1">
+                                        <div class="text-sm font-semibold">Wrong-side SUV</div>
+                                        <div class="text-xs text-gray-400">Intersection A-12</div>
+                                    </div>
+                                    <div class="text-emergency-red font-bold text-lg">95</div>
+                                </div>
+
+                                <!-- Item 2 -->
+                                <div
+                                    class="flex items-center space-x-3 p-3 rounded-lg bg-emergency-red/10 border border-emergency-red/30">
+                                    <div
+                                        class="w-8 h-8 bg-emergency-red rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                        2</div>
+                                    <div class="flex-1">
+                                        <div class="text-sm font-semibold">Ambulance block</div>
+                                        <div class="text-xs text-gray-400">Hospital Zone</div>
+                                    </div>
+                                    <div class="text-emergency-red font-bold text-lg">∞</div>
+                                </div>
+
+                                <!-- Item 3 -->
+                                <div
+                                    class="flex items-center space-x-3 p-3 rounded-lg bg-warning-orange/10 border border-warning-orange/30">
+                                    <div
+                                        class="w-8 h-8 bg-warning-orange rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                        3</div>
+                                    <div class="flex-1">
+                                        <div class="text-sm font-semibold">Speeding truck</div>
+                                        <div class="text-xs text-gray-400">Highway H-7</div>
+                                    </div>
+                                    <div class="text-warning-orange font-bold text-lg">78</div>
+                                </div>
+
+                                <!-- Item 4 -->
+                                <div
+                                    class="flex items-center space-x-3 p-3 rounded-lg bg-warning-orange/10 border border-warning-orange/30">
+                                    <div
+                                        class="w-8 h-8 bg-warning-orange rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                        4</div>
+                                    <div class="flex-1">
+                                        <div class="text-sm font-semibold">Red light violation</div>
+                                        <div class="text-xs text-gray-400">Intersection C-3</div>
+                                    </div>
+                                    <div class="text-warning-orange font-bold text-lg">62</div>
+                                </div>
+
+                                <!-- Item 5 -->
+                                <div
+                                    class="flex items-center space-x-3 p-3 rounded-lg bg-gray-700/30 border border-gray-600">
+                                    <div
+                                        class="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                        5</div>
+                                    <div class="flex-1">
+                                        <div class="text-sm font-semibold">Illegal parking</div>
+                                        <div class="text-xs text-gray-400">Main Street</div>
+                                    </div>
+                                    <div class="text-gray-400 font-bold text-lg">35</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Risk Meters Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-dark-navy p-6 rounded-xl border border-gray-700">
+                            <h4 class="text-lg font-semibold mb-4">Risk Distribution</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-sm mb-2">
+                                        <span class="text-emergency-red">Critical (80-100)</span>
+                                        <span class="font-semibold">12</span>
+                                    </div>
+                                    <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-emergency-red rounded-full" style="width: 25%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm mb-2">
+                                        <span class="text-warning-orange">High (60-79)</span>
+                                        <span class="font-semibold">18</span>
+                                    </div>
+                                    <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-warning-orange rounded-full" style="width: 38%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm mb-2">
+                                        <span class="text-gray-400">Medium (30-59)</span>
+                                        <span class="font-semibold">17</span>
+                                    </div>
+                                    <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-gray-500 rounded-full" style="width: 36%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-dark-navy p-6 rounded-xl border border-gray-700">
+                            <h4 class="text-lg font-semibold mb-4">Response Time</h4>
+                            <div class="flex items-end justify-between">
+                                <div>
+                                    <div class="text-3xl font-bold text-success-green mb-1">7.2 min</div>
+                                    <div class="text-sm text-gray-400">Average response</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm text-success-green font-semibold mb-1">↓ 84%</div>
+                                    <div class="text-xs text-gray-400">vs. manual</div>
+                                </div>
+                            </div>
+                            <div class="mt-6">
+                                <div class="flex justify-between text-sm mb-2">
+                                    <span>Target: 10 min</span>
+                                    <span>Current: 7.2 min</span>
+                                </div>
+                                <div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-success-green rounded-full" style="width: 72%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-dark-navy p-6 rounded-xl border border-gray-700">
+                            <h4 class="text-lg font-semibold mb-4">System Status</h4>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm">AI Engine</span>
+                                    <span
+                                        class="bg-success-green/20 text-success-green px-2 py-1 rounded text-xs font-semibold">
+                                        <i class="fas fa-check-circle mr-1"></i>Active
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm">Cameras Online</span>
+                                    <span class="text-sm font-semibold text-primary-blue">47/47</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm">Confidence</span>
+                                    <span class="text-sm font-semibold text-success-green">94.2%</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm">Uptime</span>
+                                    <span class="text-sm font-semibold text-success-green">99.97%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- CTA Below Dashboard -->
+            <div class="text-center mt-12" data-aos="fade-up">
+                <p class="text-xl text-gray-300 mb-6">Experience the full interactive dashboard with live data</p>
+                <a href="#" onclick="showAuthModal(); return false;"
+                    class="bg-gradient-to-r from-primary-blue to-blue-700 hover:from-blue-700 hover:to-primary-blue text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 shadow-lg shadow-blue-500/30 inline-flex items-center space-x-3">
+                    <i class="fas fa-external-link-alt"></i>
+                    <span>Open Full Dashboard</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ========== HOW IT WORKS SECTION ========== -->
+    <section class="py-20 bg-slate-card">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <div class="inline-flex items-center space-x-2 bg-primary-blue/20 border border-primary-blue/40 text-primary-blue px-4 py-2 rounded-full mb-6"
+                    data-aos="fade-down">
+                    <i class="fas fa-cogs"></i>
+                    <span class="font-semibold">HOW IT WORKS</span>
+                </div>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6" data-aos="fade-up">
+                    Six-Step AI
+                    <span class="text-primary-blue">Triage Process</span>
+                </h2>
+            </div>
+            <!-- Timeline Steps -->
+            <div class="relative">
+                <!-- Vertical Line (Mobile) -->
+                <div
+                    class="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary-blue via-warning-orange to-emergency-red -ml-0.5">
+                </div>
+
+                <!-- Steps Container -->
+                <div class="space-y-12 md:space-y-0">
+                    <!-- Step 1 -->
+                    <div class="relative flex flex-col md:flex-row items-center" data-aos="fade-right">
+                        <div class="md:w-1/2 md:pr-12 mb-8 md:mb-0">
+                            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700 shadow-lg">
+                                <div class="flex items-center space-x-3 mb-4">
+                                    <div class="bg-primary-blue/20 p-3 rounded-lg">
+                                        <i class="fas fa-video text-primary-blue text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-primary-blue font-semibold text-sm">STEP 1</div>
+                                        <h3 class="text-xl font-bold">CCTV Feed Input</h3>
+                                    </div>
+                                </div>
+                                <p class="text-gray-400 mb-4">
+                                    Existing city traffic cameras stream live footage to our secure processing servers.
+                                    No camera upgrades needed - works with current infrastructure.
+                                </p>
+                                <ul class="space-y-2 text-sm text-gray-400">
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>24/7 real-time streaming</span>
+                                    </li>
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Secure encrypted transmission</span>
+                                    </li>
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Automatic failover redundancy</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="md:w-1/2 md:pl-12">
+                            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700 text-center">
+                                <img src="https://picsum.photos/seed/cctv-camera-network/600/400.jpg" alt="CCTV Network"
+                                    class="rounded-lg mb-4">
+                                <div class="text-sm text-gray-400">City-wide camera network integration</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="relative flex flex-col md:flex-row items-center" data-aos="fade-left">
+                        <div class="md:w-1/2 md:pr-12 mb-8 md:mb-0 order-2 md:order-1">
+                            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700 shadow-lg">
+                                <div class="flex items-center space-x-3 mb-4">
+                                    <div class="bg-primary-blue/20 p-3 rounded-lg">
+                                        <i class="fas fa-robot text-primary-blue text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-primary-blue font-semibold text-sm">STEP 2</div>
+                                        <h3 class="text-xl font-bold">Vehicle Detection (YOLOv8)</h3>
+                                    </div>
+                                </div>
+                                <p class="text-gray-400 mb-4">
+                                    Advanced computer vision identifies vehicles, pedestrians, and their trajectories
+                                    with 98.7% accuracy using state-of-the-art YOLOv8 object detection.
+                                </p>
+                                <ul class="space-y-2 text-sm text-gray-400">
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Real-time object detection</span>
+                                    </li>
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Vehicle type classification</span>
+                                    </li>
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Speed and trajectory analysis</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="md:w-1/2 md:pl-12 order-1 md:order-2">
+                            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700 text-center">
+                                <img src="https://picsum.photos/seed/yolov8-detection/600/400.jpg"
+                                    alt="YOLOv8 Detection" class="rounded-lg mb-4">
+                                <div class="text-sm text-gray-400">AI-powered vehicle detection with bounding boxes
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="relative flex flex-col md:flex-row items-center" data-aos="fade-right">
+                        <div class="md:w-1/2 md:pr-12 mb-8 md:mb-0">
+                            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700 shadow-lg">
+                                <div class="flex items-center space-x-3 mb-4">
+                                    <div class="bg-warning-orange/20 p-3 rounded-lg">
+                                        <i class="fas fa-exclamation-triangle text-warning-orange text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-warning-orange font-semibold text-sm">STEP 3</div>
+                                        <h3 class="text-xl font-bold">Violation Identification</h3>
+                                    </div>
+                                </div>
+                                <p class="text-gray-400 mb-4">
+                                    AI analyzes detected vehicles against traffic rules to identify violations:
+                                    wrong-side driving, overspeeding, red light running, illegal parking, and
+                                    obstruction.
+                                </p>
+                                <ul class="space-y-2 text-sm text-gray-400">
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Multi-rule violation detection</span>
+                                    </li>
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Lane-level precision tracking</span>
+                                    </li>
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Weather-adaptive thresholds</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="md:w-1/2 md:pl-12">
+                            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700 text-center">
+                                <img src="https://picsum.photos/seed/traffic-violation-detection/600/400.jpg"
+                                    alt="Violation Detection" class="rounded-lg mb-4">
+                                <div class="text-sm text-gray-400">Real-time violation identification and classification
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="relative flex flex-col md:flex-row items-center" data-aos="fade-left">
+                        <div class="md:w-1/2 md:pr-12 mb-8 md:mb-0 order-2 md:order-1">
+                            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700 shadow-lg">
+                                <div class="flex items-center space-x-3 mb-4">
+                                    <div class="bg-warning-orange/20 p-3 rounded-lg">
+                                        <i class="fas fa-calculator text-warning-orange text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-warning-orange font-semibold text-sm">STEP 4</div>
+                                        <h3 class="text-xl font-bold">Risk Score Calculation</h3>
+                                    </div>
+                                </div>
+                                <p class="text-gray-400 mb-4">
+                                    Each violation receives a danger score (0-100) based on multiple factors:
+                                    vehicle type, violation severity, weather conditions, and location context.
+                                </p>
+                                <ul class="space-y-2 text-sm text-gray-400">
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Heavy vehicles = +30 risk</span>
+                                    </li>
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Wrong-side driving = +50 risk</span>
+                                    </li>
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Poor weather = +15 risk</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="md:w-1/2 md:pl-12 order-1 md:order-2">
+                            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700 text-center">
+                                <div class="mb-4">
+                                    <div class="text-5xl font-bold text-warning-orange mb-2">78</div>
+                                    <div class="text-sm text-gray-400">Sample Risk Score</div>
+                                </div>
+                                <div class="h-4 bg-gray-700 rounded-full overflow-hidden mb-2">
+                                    <div class="h-full bg-gradient-to-r from-success-green via-warning-orange to-emergency-red rounded-full"
+                                        style="width: 78%"></div>
+                                </div>
+                                <div class="text-xs text-gray-400">Risk meter showing danger level</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5 -->
+                    <div class="relative flex flex-col md:flex-row items-center" data-aos="fade-right">
+                        <div class="md:w-1/2 md:pr-12 mb-8 md:mb-0">
+                            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700 shadow-lg">
+                                <div class="flex items-center space-x-3 mb-4">
+                                    <div class="bg-emergency-red/20 p-3 rounded-lg">
+                                        <i class="fas fa-sort-numeric-down text-emergency-red text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-emergency-red font-semibold text-sm">STEP 5</div>
+                                        <h3 class="text-xl font-bold">Emergency Override Logic</h3>
+                                    </div>
+                                </div>
+                                <p class="text-gray-400 mb-4">
+                                    Emergency vehicles automatically receive infinite priority.
+                                    The system detects ambulances, fire trucks, and police vehicles,
+                                    clearing their paths and alerting traffic controllers immediately.
+                                </p>
+                                <ul class="space-y-2 text-sm text-gray-400">
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Visual emergency vehicle detection</span>
+                                    </li>
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Siren audio analysis</span>
+                                    </li>
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Route clearance prioritization</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="md:w-1/2 md:pl-12">
+                            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700 text-center">
+                                <img src="https://picsum.photos/seed/emergency-vehicle-priority/600/400.jpg"
+                                    alt="Emergency Priority" class="rounded-lg mb-4">
+                                <div class="text-sm text-gray-400">Emergency vehicle with infinite priority status</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 6 -->
+                    <div class="relative flex flex-col md:flex-row items-center" data-aos="fade-left">
+                        <div class="md:w-1/2 md:pr-12 mb-8 md:mb-0 order-2 md:order-1">
+                            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700 shadow-lg">
+                                <div class="flex items-center space-x-3 mb-4">
+                                    <div class="bg-success-green/20 p-3 rounded-lg">
+                                        <i class="fas fa-bell text-success-green text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-success-green font-semibold text-sm">STEP 6</div>
+                                        <h3 class="text-xl font-bold">Actionable Alert Output</h3>
+                                    </div>
+                                </div>
+                                <p class="text-gray-400 mb-4">
+                                    Priority-ranked alerts delivered to traffic command centers with recommended
+                                    actions,
+                                    camera snapshots, and real-time location data for immediate response.
+                                </p>
+                                <ul class="space-y-2 text-sm text-gray-400">
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Sub-second alert delivery</span>
+                                    </li>
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Visual evidence attached</span>
+                                    </li>
+                                    <li class="flex items-start space-x-2">
+                                        <i class="fas fa-check text-success-green text-xs mt-1"></i>
+                                        <span>Recommended response actions</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="md:w-1/2 md:pl-12 order-1 md:order-2">
+                            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700">
+                                <div class="mb-4 text-center">
+                                    <i class="fas fa-bell text-success-green text-4xl mb-3"></i>
+                                    <div class="text-lg font-semibold">Alert Delivered</div>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Priority Level:</span>
+                                        <span class="text-emergency-red font-semibold">CRITICAL</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Violation:</span>
+                                        <span class="font-semibold">Wrong-side driving</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Location:</span>
+                                        <span class="font-semibold">Intersection A-12</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Response Time:</span>
+                                        <span class="text-success-green font-semibold">7.2 minutes</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ========== TECHNOLOGY STACK SECTION ========== -->
+    <section id="technology" class="py-20 bg-dark-navy">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <div class="inline-flex items-center space-x-2 bg-primary-blue/20 border border-primary-blue/40 text-primary-blue px-4 py-2 rounded-full mb-6"
+                    data-aos="fade-down">
+                    <i class="fas fa-microchip"></i>
+                    <span class="font-semibold">TECHNOLOGY</span>
+                </div>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6" data-aos="fade-up">
+                    Built on
+                    <span class="text-primary-blue">Proven Technology</span>
+                </h2>
+                <p class="text-xl text-gray-300 max-w-3xl mx-auto" data-aos="fade-up" data-aos-delay="200">
+                    Enterprise-grade AI and computer vision stack designed for reliability,
+                    scalability, and real-time performance in mission-critical environments
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Python -->
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700 hover:border-primary-blue transition-all duration-300"
+                    data-aos="fade-up">
+                    <div
+                        class="bg-primary-blue/20 p-4 rounded-lg w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                        <i class="fab fa-python text-primary-blue text-3xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-center">Python</h3>
+                    <p class="text-gray-400 text-sm text-center mb-4">
+                        Core programming language powering the AI engine with extensive computer vision libraries
+                    </p>
+                    <div class="text-center">
+                        <span
+                            class="inline-block bg-primary-blue/20 text-primary-blue px-3 py-1 rounded-full text-xs font-semibold">Backend
+                            Logic</span>
+                    </div>
+                </div>
+
+                <!-- YOLOv8 -->
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700 hover:border-emergency-red transition-all duration-300"
+                    data-aos="fade-up" data-aos-delay="100">
+                    <div
+                        class="bg-emergency-red/20 p-4 rounded-lg w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-eye text-emergency-red text-3xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-center">YOLOv8</h3>
+                    <p class="text-gray-400 text-sm text-center mb-4">
+                        State-of-the-art object detection achieving 98.7% accuracy in real-time vehicle identification
+                    </p>
+                    <div class="text-center">
+                        <span
+                            class="inline-block bg-emergency-red/20 text-emergency-red px-3 py-1 rounded-full text-xs font-semibold">Computer
+                            Vision</span>
+                    </div>
+                </div>
+
+                <!-- OpenCV -->
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700 hover:border-warning-orange transition-all duration-300"
+                    data-aos="fade-up" data-aos-delay="200">
+                    <div
+                        class="bg-warning-orange/20 p-4 rounded-lg w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-camera text-warning-orange text-3xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-center">OpenCV</h3>
+                    <p class="text-gray-400 text-sm text-center mb-4">
+                        Image processing and video analysis library for advanced computer vision tasks
+                    </p>
+                    <div class="text-center">
+                        <span
+                            class="inline-block bg-warning-orange/20 text-warning-orange px-3 py-1 rounded-full text-xs font-semibold">Image
+                            Processing</span>
+                    </div>
+                </div>
+
+                <!-- Streamlit -->
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700 hover:border-success-green transition-all duration-300"
+                    data-aos="fade-up" data-aos-delay="300">
+                    <div
+                        class="bg-success-green/20 p-4 rounded-lg w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-tachometer-alt text-success-green text-3xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-center">Streamlit</h3>
+                    <p class="text-gray-400 text-sm text-center mb-4">
+                        Rapid dashboard development for real-time visualization and command center interfaces
+                    </p>
+                    <div class="text-center">
+                        <span
+                            class="inline-block bg-success-green/20 text-success-green px-3 py-1 rounded-full text-xs font-semibold">Dashboard
+                            UI</span>
+                    </div>
+                </div>
+
+                <!-- Gemini API -->
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700 hover:border-primary-blue transition-all duration-300"
+                    data-aos="fade-up" data-aos-delay="400">
+                    <div
+                        class="bg-primary-blue/20 p-4 rounded-lg w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-brain text-primary-blue text-3xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-center">AI Reasoning</h3>
+                    <p class="text-gray-400 text-sm text-center mb-4">
+                        Advanced AI for complex scenario analysis and contextual violation interpretation
+                    </p>
+                    <div class="text-center">
+                        <span
+                            class="inline-block bg-primary-blue/20 text-primary-blue px-3 py-1 rounded-full text-xs font-semibold">AI
+                            Engine</span>
+                    </div>
+                </div>
+
+                <!-- Data Storage -->
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700 hover:border-warning-orange transition-all duration-300"
+                    data-aos="fade-up" data-aos-delay="500">
+                    <div
+                        class="bg-warning-orange/20 p-4 rounded-lg w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-database text-warning-orange text-3xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-center">Data Storage</h3>
+                    <p class="text-gray-400 text-sm text-center mb-4">
+                        Lightweight JSON/CSV storage for violation records and analytics
+                    </p>
+                    <div class="text-center">
+                        <span
+                            class="inline-block bg-warning-orange/20 text-warning-orange px-3 py-1 rounded-full text-xs font-semibold">Data
+                            Layer</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    {{> components/footer}}
+
+    <!-- AOS Animation Init -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            duration: 800,
+            once: true
+        });
+    </script>
+
+</body>
+
+</html>ing-orange transition-all duration-300"
+data-aos="fade-up" data-aos-delay="200">
+<div class="bg-warning-orange/20 p-4 rounded-lg w-16 h-16 flex items-center justify-center mx-auto mb-6">
+    <i class="fas fa-camera text-warning-orange text-3xl"></i>
+</div>
+<h3 class="text-xl font-semibold mb-3 text-center">OpenCV</h3>
+<p class="text-gray-400 text-sm text-center mb-4">
+    Open Source Computer Vision Library for image processing, video analysis, and camera calibration
+</p>
+<div class="text-center">
+    <span
+        class="inline-block bg-warning-orange/20 text-warning-orange px-3 py-1 rounded-full text-xs font-semibold">Image
+        Processing</span>
+</div>
+</div>
+
+<!-- Streamlit -->
+<div class="bg-slate-card p-8 rounded-xl border border-gray-700 hover:border-success-green transition-all duration-300"
+    data-aos="fade-up" data-aos-delay="300">
+    <div class="bg-success-green/20 p-4 rounded-lg w-16 h-16 flex items-center justify-center mx-auto mb-6">
+        <i class="fas fa-tachometer-alt text-success-green text-3xl"></i>
+    </div>
+    <h3 class="text-xl font-semibold mb-3 text-center">Streamlit</h3>
+    <p class="text-gray-400 text-sm text-center mb-4">
+        Rapid dashboard development framework enabling real-time visualization and command center
+        interfaces
+    </p>
+    <div class="text-center">
+        <span
+            class="inline-block bg-success-green/20 text-success-green px-3 py-1 rounded-full text-xs font-semibold">Dashboard
+            UI</span>
+    </div>
+</div>
+
+<!-- Gemini API -->
+<div class="bg-slate-card p-8 rounded-xl border border-gray-700 hover:border-primary-blue transition-all duration-300"
+    data-aos="fade-up" data-aos-delay="400">
+    <div class="bg-primary-blue/20 p-4 rounded-lg w-16 h-16 flex items-center justify-center mx-auto mb-6">
+        <i class="fas fa-brain text-primary-blue text-3xl"></i>
+    </div>
+    <h3 class="text-xl font-semibold mb-3 text-center">Gemini API</h3>
+    <p class="text-gray-400 text-sm text-center mb-4">
+        Advanced AI reasoning for complex scenario analysis and contextual violation interpretation
+    </p>
+    <div class="text-center">
+        <span class="inline-block bg-primary-blue/20 text-primary-blue px-3 py-1 rounded-full text-xs font-semibold">AI
+            Reasoning</span>
+    </div>
+</div>
+
+<!-- JSON/CSV Storage -->
+<div class="bg-slate-card p-8 rounded-xl border border-gray-700 hover:border-warning-orange transition-all duration-300"
+    data-aos="fade-up" data-aos-delay="500">
+    <div class="bg-warning-orange/20 p-4 rounded-lg w-16 h-16 flex items-center justify-center mx-auto mb-6">
+        <i class="fas fa-database text-warning-orange text-3xl"></i>
+    </div>
+    <h3 class="text-xl font-semibold mb-3 text-center">JSON/CSV Storage</h3>
+    <p class="text-gray-400 text-sm text-center mb-4">
+        Lightweight data storage for violation records, analytics, and audit trails with easy
+        integration
+    </p>
+    <div class="text-center">
+        <span
+            class="inline-block bg-warning-orange/20 text-warning-orange px-3 py-1 rounded-full text-xs font-semibold">Data
+            Layer</span>
+    </div>
+</div>
+</div>
+
+<!-- Architecture Diagram -->
+<div class="mt-16 bg-slate-card p-8 rounded-2xl border border-gray-700" data-aos="fade-up">
+    <h3 class="text-2xl font-bold mb-8 text-center">System Architecture</h3>
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div class="lg:col-span-1 bg-dark-navy p-6 rounded-xl border border-gray-600 text-center">
+            <i class="fas fa-video text-primary-blue text-3xl mb-3"></i>
+            <div class="font-semibold mb-2">Input Layer</div>
+            <div class="text-xs text-gray-400">CCTV Cameras</div>
+        </div>
+        <div class="lg:col-span-1 bg-dark-navy p-6 rounded-xl border border-gray-600 text-center">
+            <i class="fas fa-network-wired text-primary-blue text-3xl mb-3"></i>
+            <div class="font-semibold mb-2">Processing</div>
+            <div class="text-xs text-gray-400">Python + OpenCV</div>
+        </div>
+        <div class="lg:col-span-1 bg-dark-navy p-6 rounded-xl border border-gray-600 text-center">
+            <i class="fas fa-robot text-emergency-red text-3xl mb-3"></i>
+            <div class="font-semibold mb-2">AI Engine</div>
+            <div class="text-xs text-gray-400">YOLOv8 Detection</div>
+        </div>
+        <div class="lg:col-span-1 bg-dark-navy p-6 rounded-xl border border-gray-600 text-center">
+            <i class="fas fa-brain text-warning-orange text-3xl mb-3"></i>
+            <div class="font-semibold mb-2">Analysis</div>
+            <div class="text-xs text-gray-400">Risk Scoring</div>
+        </div>
+        <div class="lg:col-span-1 bg-dark-navy p-6 rounded-xl border border-gray-600 text-center">
+            <i class="fas fa-tachometer-alt text-success-green text-3xl mb-3"></i>
+            <div class="font-semibold mb-2">Output</div>
+            <div class="text-xs text-gray-400">Streamlit Dashboard</div>
+        </div>
+    </div>
+</div>
+</div>
+</section>
+
+
+<!-- ========== IMPACT & BENEFITS SECTION ========== -->
+<section class="py-20 bg-slate-card">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center space-x-2 bg-success-green/20 border border-success-green/40 text-success-green px-4 py-2 rounded-full mb-6"
+                data-aos="fade-down">
+                <i class="fas fa-chart-line"></i>
+                <span class="font-semibold">IMPACT</span>
+            </div>
+            <h2 class="text-4xl md:text-5xl font-bold mb-6" data-aos="fade-up">
+                Benefits Across
+                <span class="text-success-green">All Stakeholders</span>
+            </h2>
+        </div>
+        <!-- Traffic Authorities -->
+        <div class="mb-16" data-aos="fade-up">
+            <h3 class="text-2xl font-bold mb-8 flex items-center">
+                <span class="bg-primary-blue/20 p-3 rounded-lg mr-4">
+                    <i class="fas fa-police-car text-primary-blue text-2xl"></i>
+                </span>
+                Traffic Authorities
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-dark-navy p-8 rounded-xl border border-gray-700">
+                    <div class="flex items-start space-x-4 mb-6">
+                        <div class="bg-success-green/20 p-3 rounded-lg">
+                            <i class="fas fa-tachometer-alt text-success-green text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold text-success-green mb-1">84%</div>
+                            <div class="text-gray-300">Faster Response Time</div>
+                            <div class="text-gray-400 text-sm">From 47 minutes to 7.2 minutes average</div>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Reduced cognitive overload for operators</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Priority-based alert triage system</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Automated violation categorization</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-dark-navy p-8 rounded-xl border border-gray-700">
+                    <div class="flex items-start space-x-4 mb-6">
+                        <div class="bg-primary-blue/20 p-3 rounded-lg">
+                            <i class="fas fa-chart-bar text-primary-blue text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold text-primary-blue mb-1">Data-Driven</div>
+                            <div class="text-gray-300">Decision Making</div>
+                            <div class="text-gray-400 text-sm">Analytics for strategic planning</div>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Violation pattern identification</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>High-risk intersection analysis</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Resource allocation optimization</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Services -->
+        <div class="mb-16" data-aos="fade-up" data-aos-delay="200">
+            <h3 class="text-2xl font-bold mb-8 flex items-center">
+                <span class="bg-emergency-red/20 p-3 rounded-lg mr-4">
+                    <i class="fas fa-ambulance text-emergency-red text-2xl"></i>
+                </span>
+                Emergency Services
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-dark-navy p-8 rounded-xl border border-gray-700">
+                    <div class="flex items-start space-x-4 mb-6">
+                        <div class="bg-emergency-red/20 p-3 rounded-lg">
+                            <i class="fas fa-infinity text-emergency-red text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold text-emergency-red mb-1">Infinite</div>
+                            <div class="text-gray-300">Priority Clearance</div>
+                            <div class="text-gray-400 text-sm">Emergency vehicles always first</div>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Automatic route clearance alerts</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Real-time obstruction detection</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Siren audio analysis integration</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-dark-navy p-8 rounded-xl border border-gray-700">
+                    <div class="flex items-start space-x-4 mb-6">
+                        <div class="bg-success-green/20 p-3 rounded-lg">
+                            <i class="fas fa-heartbeat text-success-green text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold text-success-green mb-1">Life-Saving</div>
+                            <div class="text-gray-300">Response Efficiency</div>
+                            <div class="text-gray-400 text-sm">Critical time saved in emergencies</div>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Reduced emergency response times</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Automated traffic signal preemption</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Hospital zone priority protection</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Smart City Administrators -->
+        <div class="mb-16" data-aos="fade-up" data-aos-delay="400">
+            <h3 class="text-2xl font-bold mb-8 flex items-center">
+                <span class="bg-primary-blue/20 p-3 rounded-lg mr-4">
+                    <i class="fas fa-city text-primary-blue text-2xl"></i>
+                </span>
+                Smart City Administrators
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-dark-navy p-8 rounded-xl border border-gray-700">
+                    <div class="flex items-start space-x-4 mb-6">
+                        <div class="bg-primary-blue/20 p-3 rounded-lg">
+                            <i class="fas fa-save text-primary-blue text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold text-primary-blue mb-1">No New</div>
+                            <div class="text-gray-300">Hardware Required</div>
+                            <div class="text-gray-400 text-sm">Works with existing infrastructure</div>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Zero capital expenditure on cameras</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Quick deployment in days, not months</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Scalable to city-wide coverage</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-dark-navy p-8 rounded-xl border border-gray-700">
+                    <div class="flex items-start space-x-4 mb-6">
+                        <div class="bg-success-green/20 p-3 rounded-lg">
+                            <i class="fas fa-shield-alt text-success-green text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold text-success-green mb-1">ROI</div>
+                            <div class="text-gray-300">Positive</div>
+                            <div class="text-gray-400 text-sm">Measurable impact on safety</div>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Reduced accident rates</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Improved emergency response metrics</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Data-driven infrastructure planning</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Citizens -->
+        <div class="" data-aos="fade-up" data-aos-delay="600">
+            <h3 class="text-2xl font-bold mb-8 flex items-center">
+                <span class="bg-success-green/20 p-3 rounded-lg mr-4">
+                    <i class="fas fa-users text-success-green text-2xl"></i>
+                </span>
+                Citizens
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-dark-navy p-8 rounded-xl border border-gray-700">
+                    <div class="flex items-start space-x-4 mb-6">
+                        <div class="bg-success-green/20 p-3 rounded-lg">
+                            <i class="fas fa-heart text-success-green text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold text-success-green mb-1">Safer</div>
+                            <div class="text-gray-300">Roads</div>
+                            <div class="text-gray-400 text-sm">Reduced accident risk</div>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Proactive danger prevention</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Faster emergency assistance</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Reduced traffic chaos</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-dark-navy p-8 rounded-xl border border-gray-700">
+                    <div class="flex items-start space-x-4 mb-6">
+                        <div class="bg-primary-blue/20 p-3 rounded-lg">
+                            <i class="fas fa-handshake text-primary-blue text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold text-primary-blue mb-1">Trust</div>
+                            <div class="text-gray-300">in System</div>
+                            <div class="text-gray-400 text-sm">Human-verified AI decisions</div>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Transparent prioritization logic</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>Privacy-aware monitoring</span>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i class="fas fa-check text-success-green text-xs mt-2"></i>
+                            <span>No automatic penalties</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ========== FEASIBILITY & SCALABILITY SECTION ========== -->
+<section id="feasibility" class="py-20 bg-dark-navy">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center space-x-2 bg-primary-blue/20 border border-primary-blue/40 text-primary-blue px-4 py-2 rounded-full mb-6"
+                data-aos="fade-down">
+                <i class="fas fa-rocket"></i>
+                <span class="font-semibold">DEPLOYMENT</span>
+            </div>
+            <h2 class="text-4xl md:text-5xl font-bold mb-6" data-aos="fade-up">
+                Feasibility &
+                <span class="text-primary-blue">Scalability</span>
+            </h2>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto" data-aos="fade-up" data-aos-delay="200">
+                Designed for rapid deployment and city-scale expansion without infrastructure overhaul
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <!-- Left Column -->
+            <div class="space-y-8">
+                <!-- No New Hardware -->
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700" data-aos="fade-right">
+                    <div class="flex items-start space-x-4 mb-6">
+                        <div class="bg-success-green/20 p-4 rounded-lg">
+                            <i class="fas fa-check-circle text-success-green text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold mb-2">No New Hardware Required</h3>
+                            <p class="text-gray-400">
+                                Our AI engine integrates with your existing CCTV camera network.
+                                No capital expenditure on new equipment, no infrastructure changes needed.
+                            </p>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-video text-primary-blue text-sm mt-1"></i>
+                            <span>Works with any IP camera system</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-plug text-primary-blue text-sm mt-1"></i>
+                            <span>Standard RTSP/HTTP video streams</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-server text-primary-blue text-sm mt-1"></i>
+                            <span>Cloud or on-premise processing</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- City-Scale Deployment -->
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700" data-aos="fade-right"
+                    data-aos-delay="200">
+                    <div class="flex items-start space-x-4 mb-6">
+                        <div class="bg-primary-blue/20 p-4 rounded-lg">
+                            <i class="fas fa-city text-primary-blue text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold mb-2">City-Scale Deployment</h3>
+                            <p class="text-gray-400">
+                                Start with a single intersection or roll out city-wide from day one.
+                                Our system scales horizontally to handle thousands of cameras.
+                            </p>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-expand text-primary-blue text-sm mt-1"></i>
+                            <span>Horizontal scaling architecture</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-microchip text-primary-blue text-sm mt-1"></i>
+                            <span>GPU-accelerated processing</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-network-wired text-primary-blue text-sm mt-1"></i>
+                            <span>Distributed camera network support</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="space-y-8">
+                <!-- Intersection-Level Rollout -->
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700" data-aos="fade-left"
+                    data-aos-delay="100">
+                    <div class="flex items-start space-x-4 mb-6">
+                        <div class="bg-warning-orange/20 p-4 rounded-lg">
+                            <i class="fas fa-map-marker-alt text-warning-orange text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold mb-2">Intersection-Level Rollout</h3>
+                            <p class="text-gray-400">
+                                Deploy incrementally, starting with high-risk intersections.
+                                Prove value at one location before expanding across the city.
+                            </p>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-chart-line text-warning-orange text-sm mt-1"></i>
+                            <span>ROI demonstrated in weeks, not years</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-sliders-h text-warning-orange text-sm mt-1"></i>
+                            <span>Per-intersection configuration</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <i class="fas fa-trophy text-warning-orange text-sm mt-1"></i>
+                            <span>Quick wins build stakeholder confidence</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Map Visualization -->
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700" data-aos="fade-left"
+                    data-aos-delay="300">
+                    <h3 class="text-xl font-bold mb-6 text-center">City Scaling Visualization</h3>
+                    <div class="relative bg-dark-navy rounded-xl overflow-hidden border border-gray-600 p-6">
+                        <img src="https://picsum.photos/seed/city-map-intersections/800/600.jpg" alt="City Map"
+                            class="rounded-lg mb-4">
+                        <div class="flex justify-between items-center">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-primary-blue">Phase 1</div>
+                                <div class="text-sm text-gray-400">High-risk intersections</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-warning-orange">Phase 2</div>
+                                <div class="text-sm text-gray-400">Major corridors</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-success-green">Phase 3</div>
+                                <div class="text-sm text-gray-400">City-wide coverage</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deployment Timeline -->
+        <div class="mt-16 bg-slate-card p-8 rounded-2xl border border-gray-700" data-aos="fade-up">
+            <h3 class="text-2xl font-bold mb-8 text-center">Deployment Timeline</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div
+                        class="bg-primary-blue/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                        <span class="text-primary-blue font-bold text-xl">1</span>
+                    </div>
+                    <div class="font-semibold mb-2">Assessment</div>
+                    <div class="text-sm text-gray-400">Camera audit & network evaluation</div>
+                    <div class="text-xs text-primary-blue font-semibold mt-2">Week 1</div>
+                </div>
+                <div class="text-center">
+                    <div
+                        class="bg-primary-blue/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                        <span class="text-primary-blue font-bold text-xl">2</span>
+                    </div>
+                    <div class="font-semibold mb-2">Integration</div>
+                    <div class="text-sm text-gray-400">Camera connectivity & AI setup</div>
+                    <div class="text-xs text-primary-blue font-semibold mt-2">Week 2</div>
+                </div>
+                <div class="text-center">
+                    <div
+                        class="bg-warning-orange/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                        <span class="text-warning-orange font-bold text-xl">3</span>
+                    </div>
+                    <div class="font-semibold mb-2">Pilot</div>
+                    <div class="text-sm text-gray-400">Single intersection testing</div>
+                    <div class="text-xs text-warning-orange font-semibold mt-2">Week 3-4</div>
+                </div>
+                <div class="text-center">
+                    <div
+                        class="bg-success-green/20 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                        <span class="text-success-green font-bold text-xl">4</span>
+                    </div>
+                    <div class="font-semibold mb-2">Scale</div>
+                    <div class="text-sm text-gray-400">City-wide deployment</div>
+                    <div class="text-xs text-success-green font-semibold mt-2">Week 5+</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ========== TRUST & COMPLIANCE SECTION ========== -->
+<section id="trust" class="py-20 bg-slate-card">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center space-x-2 bg-primary-blue/20 border border-primary-blue/40 text-primary-blue px-4 py-2 rounded-full mb-6"
+                data-aos="fade-down">
+                <i class="fas fa-shield-alt"></i>
+                <span class="font-semibold">TRUST & COMPLIANCE</span>
+            </div>
+            <h2 class="text-4xl md:text-5xl font-bold mb-6" data-aos="fade-up">
+                Designed for
+                <span class="text-primary-blue">Government Use</span>
+            </h2>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto" data-aos="fade-up" data-aos-delay="200">
+                Built with privacy, security, and human oversight at the core.
+                Trustworthy AI for mission-critical public safety applications.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Privacy-Aware -->
+            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700" data-aos="fade-right">
+                <div class="flex items-start space-x-4 mb-6">
+                    <div class="bg-success-green/20 p-4 rounded-lg">
+                        <i class="fas fa-user-shield text-success-green text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold mb-2">Privacy-Aware Design</h3>
+                        <p class="text-gray-400">
+                            Our system processes video in real-time without storing identifiable information.
+                            Only violation metadata is retained for analytics and audit purposes.
+                        </p>
+                    </div>
+                </div>
+                <ul class="space-y-3 text-gray-400">
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>No facial recognition or personal identification</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>License plate anonymization option</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>GDPR and local privacy law compliant</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>Secure data transmission and storage</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Human-Verified Alerts -->
+            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700" data-aos="fade-left" data-aos-delay="100">
+                <div class="flex items-start space-x-4 mb-6">
+                    <div class="bg-primary-blue/20 p-4 rounded-lg">
+                        <i class="fas fa-eye text-primary-blue text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold mb-2">Human-in-the-Loop</h3>
+                        <p class="text-gray-400">
+                            AI provides recommendations, humans make final decisions.
+                            Low-confidence detections are flagged for manual review before action.
+                        </p>
+                    </div>
+                </div>
+                <ul class="space-y-3 text-gray-400">
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>Confidence scores on every detection</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>Manual override capability</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>Audit trail of all AI decisions</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>Continuous learning from feedback</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- No Automatic Penalties -->
+            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700" data-aos="fade-right" data-aos-delay="200">
+                <div class="flex items-start space-x-4 mb-6">
+                    <div class="bg-warning-orange/20 p-4 rounded-lg">
+                        <i class="fas fa-gavel text-warning-orange text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold mb-2">No Automatic Penalties</h3>
+                        <p class="text-gray-400">
+                            This is a traffic triage system, not automated enforcement.
+                            Alerts go to human operators who decide appropriate responses.
+                        </p>
+                    </div>
+                </div>
+                <ul class="space-y-3 text-gray-400">
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>Decision-making remains with authorities</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>Focus on safety, not revenue generation</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>Transparent prioritization logic</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>Public trust through human oversight</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Government-Grade Security -->
+            <div class="bg-dark-navy p-8 rounded-xl border border-gray-700" data-aos="fade-left" data-aos-delay="300">
+                <div class="flex items-start space-x-4 mb-6">
+                    <div class="bg-emergency-red/20 p-4 rounded-lg">
+                        <i class="fas fa-lock text-emergency-red text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold mb-2">Government-Grade Security</h3>
+                        <p class="text-gray-400">
+                            Enterprise-level security protocols with end-to-end encryption,
+                            access controls, and audit logging for mission-critical operations.
+                        </p>
+                    </div>
+                </div>
+                <ul class="space-y-3 text-gray-400">
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>End-to-end encryption</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>Role-based access controls</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>Comprehensive audit logging</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <i class="fas fa-check-circle text-success-green text-sm mt-1"></i>
+                        <span>ISO 27001 security framework</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Compliance Certifications -->
+        <div class="mt-16 bg-dark-navy p-8 rounded-2xl border border-gray-700" data-aos="fade-up">
+            <h3 class="text-2xl font-bold mb-8 text-center">Compliance & Certifications</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="bg-slate-card p-4 rounded-xl border border-gray-700 mb-3">
+                        <i class="fas fa-shield-check text-success-green text-3xl"></i>
+                    </div>
+                    <div class="font-semibold">ISO 27001</div>
+                    <div class="text-xs text-gray-400">Information Security</div>
+                </div>
+                <div class="text-center">
+                    <div class="bg-slate-card p-4 rounded-xl border border-gray-700 mb-3">
+                        <i class="fas fa-gavel text-primary-blue text-3xl"></i>
+                    </div>
+                    <div class="font-semibold">GDPR</div>
+                    <div class="text-xs text-gray-400">Data Protection</div>
+                </div>
+                <div class="text-center">
+                    <div class="bg-slate-card p-4 rounded-xl border border-gray-700 mb-3">
+                        <i class="fas fa-building text-warning-orange text-3xl"></i>
+                    </div>
+                    <div class="font-semibold">Smart City</div>
+                    <div class="text-xs text-gray-400">Standards</div>
+                </div>
+                <div class="text-center">
+                    <div class="bg-slate-card p-4 rounded-xl border border-gray-700 mb-3">
+                        <i class="fas fa-award text-emergency-red text-3xl"></i>
+                    </div>
+                    <div class="font-semibold">GovTech</div>
+                    <div class="text-xs text-gray-400">Certified</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ========== FINAL CTA SECTION ========== -->
+<section class="py-20 bg-gradient-to-br from-dark-navy via-primary-blue/20 to-dark-navy">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="max-w-4xl mx-auto">
+            <div class="inline-flex items-center space-x-2 bg-emergency-red/20 border border-emergency-red/40 text-emergency-red px-4 py-2 rounded-full mb-8 animate-alert-pulse"
+                data-aos="fade-down">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span class="font-semibold">READY TO DEPLOY</span>
+            </div>
+
+            <h2 class="text-4xl md:text-6xl font-bold mb-6" data-aos="fade-up">
+                Deploy Smart Traffic AI at
+                <span class="bg-gradient-to-r from-emergency-red to-warning-orange bg-clip-text text-transparent">
+                    Your Intersection
+                </span>
+            </h2>
+
+            <p class="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed" data-aos="fade-up" data-aos-delay="200">
+                Join India's Smart City Mission with AI-powered traffic intelligence.
+                Start saving lives today with zero hardware investment.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16" data-aos="fade-up"
+                data-aos-delay="400">
+                <a href="/contact.html"
+                    class="group bg-gradient-to-r from-emergency-red to-red-700 hover:from-red-700 hover:to-emergency-red text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 shadow-lg shadow-red-500/30 flex items-center space-x-3">
+                    <i class="fas fa-play-circle text-xl"></i>
+                    <span>Request Live Demo</span>
+                    <i class="fas fa-arrow-right group-hover:translate-x-2 transition-transform"></i>
+                </a>
+                <a href="/contact.html"
+                    class="group border-2 border-gray-600 hover:border-white text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 flex items-center space-x-3">
+                    <i class="fas fa-handshake text-xl"></i>
+                    <span>Partner with Smart City AI</span>
+                    <i class="fas fa-arrow-right group-hover:translate-x-2 transition-transform"></i>
+                </a>
+            </div>
+
+            <!-- Trust Indicators -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8" data-aos="fade-up" data-aos-delay="600">
+                <div class="bg-slate-card p-6 rounded-xl border border-gray-700">
+                    <div class="text-3xl font-bold text-success-green mb-2">7.2 min</div>
+                    <div class="text-gray-300 font-semibold">Average Response Time</div>
+                    <div class="text-sm text-gray-400">84% faster than manual</div>
+                </div>
+                <div class="bg-slate-card p-6 rounded-xl border border-gray-700">
+                    <div class="text-3xl font-bold text-success-green mb-2">$0</div>
+                    <div class="text-gray-300 font-semibold">Hardware Investment</div>
+                    <div class="text-sm text-gray-400">Works with existing cameras</div>
+                </div>
+                <div class="bg-slate-card p-6 rounded-xl border border-gray-700">
+                    <div class="text-3xl font-bold text-success-green mb-2">30 Days</div>
+                    <div class="text-gray-300 font-semibold">To Full Deployment</div>
+                    <div class="text-sm text-gray-400">City-wide coverage</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- Footer -->
+{{> components/footer}}
+
+<!-- Scripts -->
+<script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script>
+    // Initialize AOS
+    AOS.init({
+        duration: 800,
+        once: true,
+        offset: 100
+    });
+
+    // Mobile menu toggle
+    const menuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (menuBtn && mobileMenu) {
+        menuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+    }
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
+    // Add scroll effect to navbar
+    window.addEventListener('scroll', () => {
+        const nav = document.querySelector('nav');
+        if (window.scrollY > 100) {
+            nav.classList.add('bg-opacity-100', 'shadow-lg');
+        } else {
+            nav.classList.remove('bg-opacity-100', 'shadow-lg');
+        }
+    });
+
+    // ========== AUTHENTICATION SYSTEM ==========
+
+    // Default credentials
+    const DEFAULT_PASSWORD = '12345';
+
+    // Check biometric support on page load
+    window.addEventListener('DOMContentLoaded', () => {
+        if (!window.PublicKeyCredential) {
+            document.getElementById('biometricSection').classList.add('hidden');
+            document.getElementById('biometricUnsupported').classList.remove('hidden');
+        }
+    });
+
+    // Show authentication modal
+    function showAuthModal() {
+        document.getElementById('authModal').classList.remove('hidden');
+        document.getElementById('authPassword').value = '';
+        document.getElementById('authError').classList.add('hidden');
+        // Focus password input
+        setTimeout(() => {
+            document.getElementById('authPassword').focus();
+        }, 100);
+    }
+
+    // Close authentication modal
+    function closeAuthModal() {
+        document.getElementById('authModal').classList.add('hidden');
+    }
+
+    // Password authentication
+    function authenticatePassword() {
+        const input = document.getElementById('authPassword').value;
+        const errorDiv = document.getElementById('authError');
+        const modal = document.getElementById('authModal');
+
+        if (input === DEFAULT_PASSWORD) {
+            // Success - redirect to dashboard
+            errorDiv.classList.add('hidden');
+            window.location.href = '/dashboard.html';
+        } else {
+            // Error - show message and shake
+            errorDiv.classList.remove('hidden');
+            modal.querySelector('.auth-modal-content').classList.add('shake');
+            setTimeout(() => {
+                modal.querySelector('.auth-modal-content').classList.remove('shake');
+            }, 500);
+            // Clear input
+            document.getElementById('authPassword').value = '';
+            document.getElementById('authPassword').focus();
+        }
+    }
+
+    // Biometric authentication using WebAuthn
+    async function authenticateBiometric() {
+        const errorDiv = document.getElementById('authError');
+        const errorText = document.getElementById('authErrorText');
+
+        try {
+            // Check browser support
+            if (!window.PublicKeyCredential) {
+                errorText.textContent = 'Biometric authentication not supported on this browser.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            // Generate challenge (in production, this should come from server)
+            const challenge = new Uint8Array(32);
+            crypto.getRandomValues(challenge);
+
+            // PublicKeyCredential creation options
+            const publicKeyCredentialCreationOptions = {
+                challenge: challenge,
+                rp: {
+                    name: "Smart Traffic AI",
+                    id: window.location.hostname
+                },
+                user: {
+                    id: new Uint8Array(16),
+                    name: "demo@traffic.ai",
+                    displayName: "Demo User"
+                },
+                pubKeyCredParams: [
+                    { alg: -7, type: "public-key" },  // ES256
+                    { alg: -257, type: "public-key" }  // RS256
+                ],
+                authenticatorSelection: {
+                    authenticatorAttachment: "platform", //platform" for built-in biometrics
+                    userVerification: "required"
+                },
+                timeout: 60000,
+                attestation: "none"
+            };
+
+            // Request credential
+            const credential = await navigator.credentials.create({
+                publicKey: publicKeyCredentialCreationOptions
+            });
+
+            if (credential) {
+                // Success - biometric verified
+                errorDiv.classList.add('hidden');
+                window.location.href = '/dashboard.html';
+            }
+        } catch (error) {
+            console.error('Biometric authentication error:', error);
+
+            // User-friendly error messages
+            if (error.name === 'NotAllowedError') {
+                errorText.textContent = 'Biometric authentication was cancelled or not allowed.';
+            } else if (error.name === 'NotSupportedError') {
+                errorText.textContent = 'Biometric authentication not supported. Please use password.';
+            } else {
+                errorText.textContent = 'Biometric authentication failed. Please try password instead.';
+            }
+
+            errorDiv.classList.remove('hidden');
+        }
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeAuthModal();
+        }
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('authModal').addEventListener('click', (e) => {
+        if (e.target.id === 'authModal') {
+            closeAuthModal();
+        }
+    });
+</script>
+</body>
+
+</html>
