@@ -1,0 +1,9 @@
+streamlit
+opencv-python
+numpy
+ultralytics
+scikit-learn
+pandas
+altair
+lapx>=0.5.5
+easyocr
