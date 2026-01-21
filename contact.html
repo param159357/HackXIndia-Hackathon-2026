@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Government Deployment | Smart Traffic Priority Engine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <!-- Custom Theme -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-navy': '#0F172A',
+                        'slate-card': '#1E293B',
+                        'primary-blue': '#2563EB',
+                        'emergency-red': '#DC2626',
+                        'warning-orange': '#F59E0B',
+                        'success-green': '#10B981'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-dark-navy text-white">
+
+    <!-- NAVBAR -->
+    <nav class="bg-dark-navy border-b border-gray-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div
+                    class="w-10 h-10 bg-gradient-to-br from-emergency-red to-warning-orange rounded-lg flex items-center justify-center">
+                    <i class="fas fa-traffic-light text-white"></i>
+                </div>
+                <div>
+                    <div class="font-bold">Smart Traffic AI</div>
+                    <div class="text-xs text-gray-400">Command Platform</div>
+                </div>
+            </div>
+
+            <div class="space-x-6 hidden md:flex">
+                <a href="index.html" class="text-gray-300 hover:text-white">Home</a>
+                <a href="dashboard.html" class="text-gray-300 hover:text-white">Dashboard</a>
+                <a href="contact.html" class="text-primary-blue font-semibold">Deploy</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="py-20">
+        <div class="max-w-5xl mx-auto px-6 text-center">
+            <h1 class="text-5xl font-bold mb-6">
+                Deploy Smart Traffic AI
+            </h1>
+            <p class="text-xl text-gray-300">
+                Government-grade AI for emergency-first traffic intelligence and violation prioritization
+            </p>
+        </div>
+    </section>
+
+    <!-- MAIN -->
+    <section class="pb-24">
+        <div class="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12">
+
+            <!-- FORM -->
+            <div class="bg-slate-card p-10 rounded-2xl border border-gray-700 shadow-xl">
+                <h2 class="text-2xl font-bold mb-6">Government Partnership Form</h2>
+
+                <form action="https://formspree.io/f/YOUR_FORM_ID" method="POST" class="space-y-5">
+
+                    <div>
+                        <label class="block text-sm mb-1">Department / Authority</label>
+                        <input required class="w-full bg-dark-navy border border-gray-600 rounded-lg px-4 py-3" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm mb-1">Official Name</label>
+                        <input required class="w-full bg-dark-navy border border-gray-600 rounded-lg px-4 py-3" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm mb-1">Email</label>
+                        <input type="email" required
+                            class="w-full bg-dark-navy border border-gray-600 rounded-lg px-4 py-3" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm mb-1">City / Region</label>
+                        <input required class="w-full bg-dark-navy border border-gray-600 rounded-lg px-4 py-3" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm mb-1">Number of Intersections</label>
+                        <select class="w-full bg-dark-navy border border-gray-600 rounded-lg px-4 py-3">
+                            <option>1–10</option>
+                            <option>11–50</option>
+                            <option>51–200</option>
+                            <option>200+</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm mb-1">Message</label>
+                        <textarea rows="4"
+                            class="w-full bg-dark-navy border border-gray-600 rounded-lg px-4 py-3"></textarea>
+                    </div>
+
+                    <button
+                        class="w-full bg-gradient-to-r from-emergency-red to-red-700 py-4 rounded-xl font-semibold hover:opacity-90">
+                        <i class="fas fa-paper-plane mr-2"></i> Submit Deployment Request
+                    </button>
+                </form>
+            </div>
+
+            <!-- INFO -->
+            <div class="space-y-8">
+
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700">
+                    <h3 class="text-xl font-bold mb-4">Deployment Timeline</h3>
+
+                    <ul class="space-y-3 text-gray-400">
+                        <li>✔ Week 1 — CCTV Audit & Planning</li>
+                        <li>✔ Week 2 — AI Integration</li>
+                        <li>✔ Week 3 — Pilot Intersection</li>
+                        <li>✔ Week 4+ — City Scale Deployment</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700">
+                    <h3 class="text-xl font-bold mb-4">Why Smart Traffic AI?</h3>
+
+                    <ul class="space-y-3 text-gray-400">
+                        <li>✔ Emergency-first AI prioritization</li>
+                        <li>✔ No new camera hardware required</li>
+                        <li>✔ Human-in-the-loop compliance</li>
+                        <li>✔ Real-time violation intelligence</li>
+                        <li>✔ Smart City Mission aligned</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-card p-8 rounded-xl border border-gray-700">
+                    <h3 class="text-xl font-bold mb-4">Direct Command Office</h3>
+
+                    <div class="space-y-3 text-gray-400">
+                        <p><i class="fas fa-envelope text-primary-blue mr-2"></i> gov@smarttraffic.ai</p>
+                        <p><i class="fas fa-phone text-primary-blue mr-2"></i> +91 99999 12345</p>
+                        <p><i class="fas fa-clock text-primary-blue mr-2"></i> Response within 24 hrs</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-dark-navy border-t border-gray-800 py-10">
+        <div class="max-w-7xl mx-auto px-6 text-center text-gray-400">
+            © 2026 Smart Traffic Priority Engine — Built for India’s Smart City Mission
+        </div>
+    </footer>
+
+
+    <!-- AI ASSISTANT BUTTON -->
+    <button id="aiToggle"
+        class="fixed bottom-6 right-6 bg-primary-blue p-4 rounded-full shadow-lg hover:scale-110 transition z-50">
+        <i class="fas fa-robot text-white text-xl"></i>
+    </button>
+
+    <!-- AI PANEL -->
+    <div id="aiPanel"
+        class="fixed bottom-24 right-6 w-96 bg-slate-card border border-gray-700 rounded-2xl shadow-2xl hidden z-50">
+
+        <div class="bg-dark-navy p-4 rounded-t-2xl flex justify-between items-center border-b border-gray-700">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-robot text-primary-blue"></i>
+                <span class="font-semibold">Smart City AI Assistant</span>
+            </div>
+            <button id="closeAI"><i class="fas fa-times text-gray-400"></i></button>
+        </div>
+
+        <div id="aiMessages" class="h-72 overflow-y-auto p-4 space-y-3 text-sm">
+            <div class="bg-dark-navy p-3 rounded-lg text-gray-300">
+                Hello Officer. I am your Smart Traffic AI Command Assistant.
+            </div>
+        </div>
+
+        <div class="p-3 border-t border-gray-700 flex">
+            <input id="aiInput" class="flex-1 bg-dark-navy border border-gray-600 rounded-l-lg px-3 py-2"
+                placeholder="Ask AI..." />
+            <button id="sendAI" class="bg-primary-blue px-4 rounded-r-lg">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const aiToggle = document.getElementById("aiToggle");
+        const aiPanel = document.getElementById("aiPanel");
+        const closeAI = document.getElementById("closeAI");
+        const sendAI = document.getElementById("sendAI");
+        const aiInput = document.getElementById("aiInput");
+        const aiMessages = document.getElementById("aiMessages");
+
+        aiToggle.onclick = () => aiPanel.classList.toggle("hidden");
+        closeAI.onclick = () => aiPanel.classList.add("hidden");
+
+        sendAI.onclick = sendMessage;
+        aiInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+
+        function sendMessage() {
+            const msg = aiInput.value.trim();
+            if (!msg) return;
+
+            addMessage(msg, "user");
+            aiInput.value = "";
+
+            setTimeout(() => {
+                addMessage("Smart Traffic AI is processing your request. A command officer will contact you shortly.", "ai");
+            }, 800);
+        }
+
+        function addMessage(text, sender) {
+            const bubble = document.createElement("div");
+            bubble.className = sender === "user"
+                ? "bg-primary-blue text-white p-3 rounded-lg ml-12"
+                : "bg-dark-navy text-gray-300 p-3 rounded-lg mr-12";
+
+            bubble.innerText = text;
+            aiMessages.appendChild(bubble);
+            aiMessages.scrollTop = aiMessages.scrollHeight;
+        }
+    </script>
+
+</body>
+
+</html>
